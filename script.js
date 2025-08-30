@@ -14,6 +14,24 @@ document.addEventListener('dragstart', (e) => {
     }
 });
 
+// 連続タップ時のズームを防ぐ（iOS/一部ブラウザ対策）
+// ピンチズーム抑止（iOS Safari 独自イベント）
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+document.addEventListener('gesturechange', (e) => e.preventDefault());
+document.addEventListener('gestureend', (e) => e.preventDefault());
+
+// 複数指タッチ開始でのズーム抑止（他ブラウザ向け）
+document.addEventListener('touchstart', (e) => {
+    if (e.touches && e.touches.length > 1) {
+        e.preventDefault();
+    }
+}, { passive: false });
+
+// ダブルタップの拡大抑止
+document.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+}, { passive: false });
+
 const playButton = document.getElementById('playButton');
 const playIcon = document.getElementById('playIcon');
 const prevButton = document.getElementById('prevButton');

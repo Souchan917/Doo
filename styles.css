@@ -23,6 +23,23 @@ img {
     -webkit-tap-highlight-color: transparent; /* タップ時のハイライト除去 */
 }
 
+/* ダブルタップ拡大の抑止（対応ブラウザで有効） */
+html, body {
+    touch-action: manipulation;
+}
+
+/* 主なインタラクティブ要素にも適用 */
+button,
+.control-button,
+.hint-button,
+.reset-button,
+.share-button,
+.modal-button,
+.container,
+.problem-area {
+    touch-action: manipulation;
+}
+
 /* ステージごとのテーマカラー用のクラス */
 /* ステージごとのテーマカラー用のクラス */
 body.stage-0 { background-color: #808080; }  /* チュートリアル: 灰色 */
