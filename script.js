@@ -1,3 +1,19 @@
+// 画像の長押し（保存メニュー等）を無効化
+document.addEventListener('contextmenu', (e) => {
+    const t = e.target;
+    if (t && t.tagName === 'IMG') {
+        e.preventDefault();
+    }
+}, { passive: false });
+
+// 念のため、画像のドラッグや選択も防止
+document.addEventListener('dragstart', (e) => {
+    const t = e.target;
+    if (t && t.tagName === 'IMG') {
+        e.preventDefault();
+    }
+});
+
 const playButton = document.getElementById('playButton');
 const playIcon = document.getElementById('playIcon');
 const prevButton = document.getElementById('prevButton');

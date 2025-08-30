@@ -14,6 +14,15 @@ body {
     transition: background-color 0.5s ease;
 }
 
+/* 画像の長押しメニューや選択を無効化（スマホ対策） */
+img {
+    -webkit-touch-callout: none; /* iOS Safari: 長押しのポップアップ無効化 */
+    -webkit-user-select: none;
+    user-select: none;           /* テキスト選択防止 */
+    -webkit-user-drag: none;     /* 画像ドラッグ無効化 */
+    -webkit-tap-highlight-color: transparent; /* タップ時のハイライト除去 */
+}
+
 /* ステージごとのテーマカラー用のクラス */
 /* ステージごとのテーマカラー用のクラス */
 body.stage-0 { background-color: #808080; }  /* チュートリアル: 灰色 */
