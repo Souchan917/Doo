@@ -1,37 +1,3 @@
-// 画像の長押し（保存メニュー等）を無効化
-document.addEventListener('contextmenu', (e) => {
-    const t = e.target;
-    if (t && t.tagName === 'IMG') {
-        e.preventDefault();
-    }
-}, { passive: false });
-
-// 念のため、画像のドラッグや選択も防止
-document.addEventListener('dragstart', (e) => {
-    const t = e.target;
-    if (t && t.tagName === 'IMG') {
-        e.preventDefault();
-    }
-});
-
-// 連続タップ時のズームを防ぐ（iOS/一部ブラウザ対策）
-// ピンチズーム抑止（iOS Safari 独自イベント）
-document.addEventListener('gesturestart', (e) => e.preventDefault());
-document.addEventListener('gesturechange', (e) => e.preventDefault());
-document.addEventListener('gestureend', (e) => e.preventDefault());
-
-// 複数指タッチ開始でのズーム抑止（他ブラウザ向け）
-document.addEventListener('touchstart', (e) => {
-    if (e.touches && e.touches.length > 1) {
-        e.preventDefault();
-    }
-}, { passive: false });
-
-// ダブルタップの拡大抑止
-document.addEventListener('dblclick', (e) => {
-    e.preventDefault();
-}, { passive: false });
-
 const playButton = document.getElementById('playButton');
 const playIcon = document.getElementById('playIcon');
 const prevButton = document.getElementById('prevButton');
@@ -47,6 +13,7 @@ const BPM = 170;
 const BEATS_PER_SECOND = BPM / 60;
 const BEAT_INTERVAL = 60 / BPM; // 1拍の長さ（秒）
 const TOTAL_DURATION = 254; // 4:14 in seconds
+
 
 const HIRAGANA = [
     'あ', 'い', 'う', 'え', 'お',
@@ -667,9 +634,7 @@ let lastBeat = -1;
 let isLoopComplete = false;
 let isHolding = false;
 let holdStartBeat = -1;
-let activeHoldLine = null; // 現在進行中の長押しライン
-let holdSegments = [];     // 確定したホールド区間 { startBeat, endBeat, el }
-const audio = new Audio('assets/audio/MUSIC2.mp3');
+const audio = new Audio('assets/audio/MUSIC.mp3');
 audio.volume = 0.7;
 
 //====================================================
@@ -947,13 +912,7 @@ _updateNumberTextGimmick(element, config, containerSize) {
     _updateRhythmDotsGimmick(element, config, containerSize) {
         const dots = element.querySelectorAll('.rhythm-dot-in-puzzle');
         const scaleFactor = containerSize / 400;
-        const curBeat = Math.floor(currentBeatProgress) + 1;
-        // ホールド中の可視選択範囲（見た目のみ黒くする）
-        let holdMin = null, holdMax = null;
-        if (isHolding && holdStartBeat > 0) {
-            holdMin = Math.min(holdStartBeat, curBeat);
-            holdMax = Math.max(holdStartBeat, curBeat);
-        }
+        const currentBeat = Math.floor(currentBeatProgress) + 1;
     
         const container = element.querySelector('div');
         container.style.position = 'absolute';
@@ -973,17 +932,15 @@ _updateNumberTextGimmick(element, config, containerSize) {
             dot.style.top = `${dotConfig.y}%`;
             dot.style.transform = 'translate(-50%, -50%)';
     
-            // 見た目の設定（ホールド中は範囲内のドットも黒）
-            const isVirtuallyHeld = (holdMin !== null && beatNumber >= holdMin && beatNumber <= holdMax);
-            const displaySelected = selectedBeats.has(beatNumber) || isVirtuallyHeld;
-            dot.style.backgroundColor = displaySelected ? '#000000' : '#FFFFFF';
+            // 見た目の設定
+            dot.style.backgroundColor = selectedBeats.has(beatNumber) ? '#000000' : '#FFFFFF';
             dot.style.borderRadius = '50%';
             dot.style.opacity = '0.8';
             dot.style.transition = 'all 0.1s ease';
             dot.style.border = '2px solid #333';
     
             // 現在のビートのドットをハイライト
-            if (beatNumber === curBeat) {
+            if (beatNumber === currentBeat) {
                 dot.style.transform = 'translate(-50%, -50%) scale(1.2)';
                 dot.style.opacity = '1';
             } else {
@@ -1133,9 +1090,6 @@ function createRhythmDots() {
         
         dotsContainer.appendChild(dot);
     }
-
-    // dots 再生成後に確定ホールド線を再描画
-    renderHoldSegments();
 }
 
 function updateRhythmDots() {
@@ -1153,9 +1107,6 @@ function updateRhythmDots() {
         checkRhythmPattern();
         selectedBeats.clear();
         isLoopComplete = true;
-        // ループが戻ったら進行中のホールドと線をクリア
-        clearActiveHoldLine();
-        clearHoldSegments();
     } else {
         isLoopComplete = false;
     }
@@ -1163,18 +1114,10 @@ function updateRhythmDots() {
     lastBeat = currentBeat;
 
     const dots = dotsContainer.querySelectorAll('.rhythm-dot');
-    // ホールド中の可視選択範囲（見た目だけ黒くする）
-    let holdMin = null, holdMax = null;
-    if (isHolding && holdStartBeat > 0) {
-        holdMin = Math.min(holdStartBeat, currentBeat);
-        holdMax = Math.max(holdStartBeat, currentBeat);
-    }
     dots.forEach((dot, index) => {
         const beatNumber = index + 1;
         const isCurrentBeat = beatNumber === currentBeat;
         const isSelected = selectedBeats.has(beatNumber);
-        const isVirtuallyHeld = (holdMin !== null && beatNumber >= holdMin && beatNumber <= holdMax);
-        const displaySelected = isSelected || isVirtuallyHeld;
         const isCorrectBeat = clearedStages.has(currentStage) && 
             correctPatterns[currentStage].includes(beatNumber);
 
@@ -1183,168 +1126,12 @@ function updateRhythmDots() {
             dot.classList.add('selected');
         } else {
             dot.classList.toggle('active', isCurrentBeat);
-            dot.classList.toggle('selected', displaySelected);
+            dot.classList.toggle('selected', isSelected);
         }
     });
-
-    // 進行中のホールド線を更新
-    if (isHolding && holdStartBeat > 0) {
-        updateActiveHoldLine(holdStartBeat, currentBeat);
-    }
-
-    // 確定済みホールド線の位置を更新（レイアウト変化に備える）
-    updateHoldSegmentPositions();
-}
-
-// ====================================================
-// 長押し（ホールド）線の描画ユーティリティ
-// ====================================================
-function getRhythmDotsInfo() {
-    const container = document.getElementById('rhythmDots');
-    if (!container) return null;
-    const dots = Array.from(container.querySelectorAll('.rhythm-dot'));
-    if (dots.length === 0) return null;
-    const containerRect = container.getBoundingClientRect();
-    const dotRects = dots.map(d => d.getBoundingClientRect());
-    const centers = dotRects.map(r => ({
-        x: r.left + r.width / 2 - containerRect.left,
-        y: r.top + r.height / 2 - containerRect.top,
-        w: r.width,
-        h: r.height
-    }));
-    return { container, containerRect, dots, centers };
-}
-
-function ensureActiveHoldLineEl() {
-    const info = getRhythmDotsInfo();
-    if (!info) return null;
-    if (!activeHoldLine) {
-        activeHoldLine = document.createElement('div');
-        activeHoldLine.className = 'hold-line';
-        info.container.appendChild(activeHoldLine);
-    }
-    return activeHoldLine;
-}
-
-function updateActiveHoldLine(startBeat, endBeat) {
-    const info = getRhythmDotsInfo();
-    if (!info) return;
-    const line = ensureActiveHoldLineEl();
-    if (!line) return;
-
-    const s = Math.max(1, Math.min(info.centers.length, startBeat)) - 1;
-    const e = Math.max(1, Math.min(info.centers.length, endBeat)) - 1;
-    const c1 = info.centers[s];
-    const c2 = info.centers[e];
-    const left = Math.min(c1.x, c2.x);
-    const right = Math.max(c1.x, c2.x);
-    const width = right - left;
-    const thickness = c1.h; // dot size
-    const top = info.containerRect.height / 2 - thickness / 2;
-
-    line.style.left = `${left}px`;
-    line.style.top = `${top}px`;
-    line.style.width = `${width}px`;
-    line.style.height = `${thickness}px`;
-    line.style.display = width > 0 ? 'block' : 'none';
-}
-
-function clearActiveHoldLine() {
-    if (activeHoldLine && activeHoldLine.parentNode) {
-        activeHoldLine.parentNode.removeChild(activeHoldLine);
-    }
-    activeHoldLine = null;
-    isHolding = false;
-    holdStartBeat = -1;
-}
-
-function finalizeHoldSegment(startBeat, endBeat) {
-    const info = getRhythmDotsInfo();
-    if (!info) return;
-    const segEl = document.createElement('div');
-    segEl.className = 'hold-line';
-    info.container.appendChild(segEl);
-    holdSegments.push({ startBeat, endBeat, el: segEl });
-    // 初期配置
-    positionHoldSegment(segEl, startBeat, endBeat, info);
-}
-
-function positionHoldSegment(el, startBeat, endBeat, info) {
-    if (!info) info = getRhythmDotsInfo();
-    if (!info) return;
-    const s = Math.max(1, Math.min(info.centers.length, startBeat)) - 1;
-    const e = Math.max(1, Math.min(info.centers.length, endBeat)) - 1;
-    const c1 = info.centers[s];
-    const c2 = info.centers[e];
-    const left = Math.min(c1.x, c2.x);
-    const right = Math.max(c1.x, c2.x);
-    const width = right - left;
-    const thickness = c1.h;
-    const top = info.containerRect.height / 2 - thickness / 2;
-
-    el.style.left = `${left}px`;
-    el.style.top = `${top}px`;
-    el.style.width = `${width}px`;
-    el.style.height = `${thickness}px`;
-}
-
-function renderHoldSegments() {
-    // dots 再生成後に保持しているセグメントを再描画
-    const info = getRhythmDotsInfo();
-    if (!info) return;
-    holdSegments.forEach(seg => {
-        if (!seg.el || !seg.el.parentNode) {
-            const el = document.createElement('div');
-            el.className = 'hold-line';
-            info.container.appendChild(el);
-            seg.el = el;
-        }
-        positionHoldSegment(seg.el, seg.startBeat, seg.endBeat, info);
-    });
-}
-
-function updateHoldSegmentPositions() {
-    const info = getRhythmDotsInfo();
-    if (!info) return;
-    holdSegments.forEach(seg => positionHoldSegment(seg.el, seg.startBeat, seg.endBeat, info));
-}
-
-function clearHoldSegments() {
-    holdSegments.forEach(seg => {
-        if (seg.el && seg.el.parentNode) seg.el.parentNode.removeChild(seg.el);
-    });
-    holdSegments = [];
-}
-
-function selectCurrentBeatOnce() {
-    const dotCount = stageSettings[currentStage]?.dots || 4;
-    const beat = Math.floor(((currentTime * BEATS_PER_SECOND) % dotCount)) + 1;
-    selectedBeats.add(beat);
 }
 
 function checkRhythmPattern() {
-    // ステージ1: 「ー・・」(1-2をホールド、3と4をタップ)
-    if (currentStage === 1) {
-        const hasHold12 = holdSegments.some(seg => {
-            const s = Math.min(seg.startBeat, seg.endBeat);
-            const e = Math.max(seg.startBeat, seg.endBeat);
-            return s === 1 && e === 2;
-        });
-        const has3 = selectedBeats.has(3);
-        const has4 = selectedBeats.has(4);
-
-        if (hasHold12 && has3 && has4) {
-            clearedStages.add(currentStage);
-            currentStage++;
-            updateStageContent();
-            selectedBeats.clear();
-            return;
-        }
-        // 失敗時は通常のクリアに倣い、選択はクリア
-        selectedBeats.clear();
-        return;
-    }
-
     // ステージ6の特殊判定
     if (currentStage === 6) {
         // 前半と後半のドット数をカウント
@@ -1523,36 +1310,6 @@ nextButton.addEventListener('click', () => {
     selectedBeats.add(currentBeat);
 });
 
-// ポインタ（マウス/タッチ/ペン）での長押し対応
-function handleNextPointerDown(e) {
-    // 押下した瞬間の拍を選択（従来のタップ動作と整合）
-    selectCurrentBeatOnce();
-    const dotCount = stageSettings[currentStage]?.dots || 4;
-    holdStartBeat = Math.floor(((currentTime * BEATS_PER_SECOND) % dotCount)) + 1;
-    isHolding = true;
-    updateActiveHoldLine(holdStartBeat, holdStartBeat);
-}
-
-function handleNextPointerUp(e) {
-    // 離した拍までを線で接続
-    if (isHolding && holdStartBeat > 0) {
-        const dotCount = stageSettings[currentStage]?.dots || 4;
-        const endBeat = Math.floor(((currentTime * BEATS_PER_SECOND) % dotCount)) + 1;
-        if (endBeat !== holdStartBeat) finalizeHoldSegment(holdStartBeat, endBeat);
-    }
-    clearActiveHoldLine();
-}
-
-// pointer イベントを使う（タッチ/マウス共通）
-if (nextButton) {
-    nextButton.addEventListener('pointerdown', handleNextPointerDown);
-    nextButton.addEventListener('pointerup', handleNextPointerUp);
-    nextButton.addEventListener('pointercancel', handleNextPointerUp);
-    nextButton.addEventListener('pointerleave', (e) => {
-        if (e.pressure === 0) handleNextPointerUp(e);
-    });
-}
-
 // プログレスバーのドラッグ制御
 progressBarElement.addEventListener('mousedown', (event) => {
     const knob = document.getElementById('progressKnob');
@@ -1686,9 +1443,6 @@ const debugTools = {
 // ステージ更新時にセレクトボックスも更新
 const originalUpdateStageContent = updateStageContent;
 updateStageContent = function() {
-    // ステージ切替時にホールド線をクリア
-    clearActiveHoldLine();
-    clearHoldSegments();
     originalUpdateStageContent.apply(this, arguments);
     const stageSelect = document.getElementById('stageSelect');
     if (stageSelect) {
@@ -2016,40 +1770,23 @@ async function initialize() {
 }
 
 
-// キーでの入力（長押し対応）
 document.addEventListener('keydown', (event) => {
-    // Enter / Space
-    if (event.key === 'Enter' || event.code === 'Space') {
-        // スクロール等のデフォルト抑止
+    // エンターキー(13)またはスペースキー(32)が押された場合
+    if (event.keyCode === 13 || event.keyCode === 32) {
+        // デフォルトの動作を防止（スペースキーでのスクロールなど）
         event.preventDefault();
-        if (event.repeat) return; // 自動リピート無効化
-
-        // 押下拍を選択し、ホールド開始
-        selectCurrentBeatOnce();
-        const dotCount = stageSettings[currentStage]?.dots || 4;
-        holdStartBeat = Math.floor(((currentTime * BEATS_PER_SECOND) % dotCount)) + 1;
-        isHolding = true;
-        updateActiveHoldLine(holdStartBeat, holdStartBeat);
-    }
-});
-
-document.addEventListener('keyup', (event) => {
-    if (event.key === 'Enter' || event.code === 'Space') {
-        // キーアップ時にクリック動作を一度実行して離した拍も選択
-        const btn = document.getElementById('nextButton');
-        if (btn) {
-            btn.click();
-            btn.style.transform = 'scale(0.95)';
-            setTimeout(() => { btn.style.transform = 'scale(1)'; }, 100);
+        
+        // 次へボタンのクリックをシミュレート
+        const nextButton = document.getElementById('nextButton');
+        if (nextButton) {
+            nextButton.click();
+            
+            // クリックエフェクトを追加（オプション）
+            nextButton.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                nextButton.style.transform = 'scale(1)';
+            }, 100);
         }
-
-        // ホールド確定
-        if (isHolding && holdStartBeat > 0) {
-            const dotCount = stageSettings[currentStage]?.dots || 4;
-            const endBeat = Math.floor(((currentTime * BEATS_PER_SECOND) % dotCount)) + 1;
-            if (endBeat !== holdStartBeat) finalizeHoldSegment(holdStartBeat, endBeat);
-        }
-        clearActiveHoldLine();
     }
 });
 

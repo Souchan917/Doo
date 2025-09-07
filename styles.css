@@ -14,32 +14,6 @@ body {
     transition: background-color 0.5s ease;
 }
 
-/* 画像の長押しメニューや選択を無効化（スマホ対策） */
-img {
-    -webkit-touch-callout: none; /* iOS Safari: 長押しのポップアップ無効化 */
-    -webkit-user-select: none;
-    user-select: none;           /* テキスト選択防止 */
-    -webkit-user-drag: none;     /* 画像ドラッグ無効化 */
-    -webkit-tap-highlight-color: transparent; /* タップ時のハイライト除去 */
-}
-
-/* ダブルタップ拡大の抑止（対応ブラウザで有効） */
-html, body {
-    touch-action: manipulation;
-}
-
-/* 主なインタラクティブ要素にも適用 */
-button,
-.control-button,
-.hint-button,
-.reset-button,
-.share-button,
-.modal-button,
-.container,
-.problem-area {
-    touch-action: manipulation;
-}
-
 /* ステージごとのテーマカラー用のクラス */
 /* ステージごとのテーマカラー用のクラス */
 body.stage-0 { background-color: #808080; }  /* チュートリアル: 灰色 */
@@ -264,7 +238,6 @@ body.stage-23 { background-color: #5D4037; }
     justify-content: space-between;
     align-items: center;
     padding: 0 40px;
-    position: relative; /* allow absolute-positioned hold lines */
 }
 
 .rhythm-dot {
@@ -292,15 +265,6 @@ body.stage-23 { background-color: #5D4037; }
 
 .rhythm-dot.selected {
     background-color: #000000;
-    opacity: 1;
-}
-
-/* line connecting held beats */
-.hold-line {
-    position: absolute;
-    background-color: #000000;
-    border-radius: 0; /* 端は丸めない */
-    pointer-events: none;
     opacity: 1;
 }
 
