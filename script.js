@@ -1937,12 +1937,22 @@ class AssetLoader {
         this.loadedAssets = 0;
         this.loadingScreen = document.getElementById('loadingScreen');
         this.progressText = this.loadingScreen.querySelector('.loading-progress');
+        this.donutBite = this.loadingScreen.querySelector('.donut-bite');
+        this._donutCirc = 2 * Math.PI * 44; // r=44 (SVG内半径)
         this.audio = new Audio('assets/audio/MUSIC.mp3');
     }
 
     updateLoadingProgress() {
         const percentage = Math.floor((this.loadedAssets / this.totalAssets) * 100);
         this.progressText.textContent = `${percentage}%`;
+        // ドーナツの食べられ具合（黒ストロークの長さ）を更新
+        if (this.donutBite) {
+            const ratio = Math.max(0, Math.min(1, this.loadedAssets / Math.max(1, this.totalAssets)));
+            const eaten = this._donutCirc * ratio;
+            const remain = this._donutCirc - eaten;
+            this.donutBite.setAttribute('stroke-dasharray', `${eaten} ${remain}`);
+            this.donutBite.setAttribute('stroke-dashoffset', '0');
+        }
     }
 
     async loadAll() {
@@ -1981,7 +1991,12 @@ class AssetLoader {
                         this.updateLoadingProgress();
                         resolve();
                     };
-                    img.onerror = reject;
+                    img.onerror = () => {
+                        console.warn('Image failed to load:', src);
+                        this.loadedAssets++;
+                        this.updateLoadingProgress();
+                        resolve();
+                    };
                     img.src = src;
                 });
             });
@@ -2005,6 +2020,33 @@ class AssetLoader {
                         resolve(this.audio);
                     }
                 });
+
+                // 追加の完了判定（環境依存の canplaythrough 未発火対策）
+                this.audio.addEventListener('loadedmetadata', () => {
+                    if (!loaded) {
+                        loaded = true;
+                        this.loadedAssets++;
+                        this.updateLoadingProgress();
+                        resolve(this.audio);
+                    }
+                }, { once: true });
+                this.audio.addEventListener('canplay', () => {
+                    if (!loaded) {
+                        loaded = true;
+                        this.loadedAssets++;
+                        this.updateLoadingProgress();
+                        resolve(this.audio);
+                    }
+                }, { once: true });
+                // フォールバック（4秒）
+                setTimeout(() => {
+                    if (!loaded) {
+                        loaded = true;
+                        this.loadedAssets++;
+                        this.updateLoadingProgress();
+                        resolve(this.audio);
+                    }
+                }, 4000);
 
                 this.audio.addEventListener('error', reject);
                 

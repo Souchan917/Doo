@@ -667,7 +667,7 @@ body.stage-16 .reset-container.show {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: #1a1a1a;
+    background-color: #000;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -679,14 +679,26 @@ body.stage-16 .reset-container.show {
     text-align: center;
 }
 
-.loading-circle {
-    width: 80px;
-    height: 80px;
-    border: 4px solid #333;
-    border-top: 4px solid #fff;
-    border-radius: 50%;
-    margin: 0 auto 20px;
-    animation: spin 1s linear infinite;
+/* Donut progress */
+.donut {
+    width: 140px;
+    height: 140px;
+    display: block;
+    margin: 0 auto 14px;
+    transform: rotate(-90deg); /* 12時開始 */
+}
+.donut-ring {
+    fill: none;
+    stroke: #fff; /* ドーナツ（白） */
+    stroke-width: 24px;
+    opacity: 1;
+}
+.donut-bite {
+    fill: none;
+    stroke: #000; /* 食べられた部分（黒で隠す） */
+    stroke-width: 24px;
+    stroke-linecap: butt;
+    stroke-dasharray: 0 999; /* 初期は未食 */
 }
 
 .loading-text {
@@ -701,10 +713,7 @@ body.stage-16 .reset-container.show {
     font-size: 18px;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+/* spinner 削除 */
 
 .loading-screen.fade-out {
     opacity: 0;
