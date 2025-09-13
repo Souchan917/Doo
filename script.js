@@ -1041,6 +1041,8 @@ class GimmickManager {
             textWrap.style.justifyContent = 'center';
             textWrap.style.alignItems = 'center';
             textWrap.style.pointerEvents = 'none';
+            // Use a lyric-friendly Mincho font
+            textWrap.style.fontFamily = "'Shippori Mincho', 'Noto Serif JP', 'Yu Mincho', 'Hiragino Mincho ProN', 'Hiragino Mincho', 'MS Mincho', serif";
             element.appendChild(textWrap);
         }
 
@@ -1194,7 +1196,7 @@ class GimmickManager {
             p.textContent = line;
             p.style.fontSize = `${fontSize}px`;
             p.style.lineHeight = `${lineHeight}`;
-            p.style.fontFamily = "'M PLUS Rounded 1c', sans-serif";
+            p.style.fontFamily = "'Shippori Mincho', 'Noto Serif JP', 'Yu Mincho', 'Hiragino Mincho ProN', 'Hiragino Mincho', 'MS Mincho', serif";
             p.style.fontWeight = '700';
             // 行の最大横幅を要素幅に合わせる
             p.style.maxWidth = '90%';
