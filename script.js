@@ -930,7 +930,7 @@ let lastBeat = -1;
 let isLoopComplete = false;
 let isHolding = false;
 let holdStartBeat = -1;
-const audio = new SeamlessLoopPlayer('assets/audio/MUSIC.mp3');
+const audio = new SeamlessLoopPlayer('assets/audio/MUSIC2.mp3');
 audio.volume = 0.7;
 
 //====================================================
@@ -1775,21 +1775,35 @@ const debugTools = {
         // キーボードショートカット
         document.addEventListener('keydown', (e) => {
             let targetStage = null;
-            
-            // 通常の数字キー (0-9)
-            if (e.key >= '0' && e.key <= '9' && !e.shiftKey && !e.ctrlKey) {
-                targetStage = parseInt(e.key);
+            // 物理キー優先で判定（Shiftの記号化対策）
+            const code = e.code || '';
+            let digit = null;
+            if (code.startsWith('Digit')) {
+                digit = parseInt(code.slice(5), 10);
+            } else if (code.startsWith('Numpad')) {
+                const n = parseInt(code.slice(6), 10);
+                if (!isNaN(n) && n >= 0 && n <= 9) digit = n;
+            } else if (e.key && e.key >= '0' && e.key <= '9') {
+                digit = parseInt(e.key, 10);
             }
-            // Shift + 数字キー (11-19)
-            else if (e.key >= '1' && e.key <= '9' && e.shiftKey && !e.ctrlKey) {
-                targetStage = parseInt(e.key) + 10;
-            }
-            // Ctrl + 数字キー (21-29)
-            else if (e.key >= '1' && e.key <= '9' && !e.shiftKey && e.ctrlKey) {
-                targetStage = parseInt(e.key) + 20;
+
+            if (digit !== null) {
+                // Shift + 0..7 => 10..17
+                if (e.shiftKey && !e.ctrlKey) {
+                    if (digit >= 0 && digit <= 7) targetStage = 10 + digit;
+                }
+                // Ctrl + 1..9 => 21..29（従来維持）
+                else if (!e.shiftKey && e.ctrlKey) {
+                    if (digit >= 1 && digit <= 9) targetStage = 20 + digit;
+                }
+                // 単体 0..9 => 0..9
+                else if (!e.shiftKey && !e.ctrlKey) {
+                    targetStage = digit;
+                }
             }
 
             if (targetStage !== null && targetStage <= 25) {
+                e.preventDefault();
                 this.forceJumpToStage(targetStage);
             }
         });
