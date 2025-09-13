@@ -1937,12 +1937,18 @@ class AssetLoader {
         this.loadedAssets = 0;
         this.loadingScreen = document.getElementById('loadingScreen');
         this.progressText = this.loadingScreen.querySelector('.loading-progress');
+        this.progressImage = this.loadingScreen.querySelector('.loading-image');
         this.audio = new Audio('assets/audio/MUSIC.mp3');
+        this.cache = new Map();
     }
 
     updateLoadingProgress() {
         const percentage = Math.floor((this.loadedAssets / this.totalAssets) * 100);
-        this.progressText.textContent = `${percentage}%`;
+        if (this.progressText) this.progressText.textContent = `${percentage}%`;
+        if (this.progressImage) {
+            this.progressImage.style.setProperty('--p', percentage);
+            this.progressImage.style.setProperty('--a', `${percentage * 3.6}deg`);
+        }
     }
 
     async loadAll() {
@@ -1958,6 +1964,7 @@ class AssetLoader {
                 'assets/images/controls/prev.png',
                 'assets/images/controls/next.png',
                 'assets/images/controls/hint.png',
+                'assets/images/load/load.png',
 
                 // Stage 8の月の画像
                 ...Array.from({ length: 8 }, (_, i) => `assets/images/puzzles/stage8/moon${i}.png`),
@@ -1976,7 +1983,13 @@ class AssetLoader {
             const imagePromises = imageList.map(src => {
                 return new Promise((resolve, reject) => {
                     const img = new Image();
-                    img.onload = () => {
+                    img.onload = async () => {
+                        try {
+                            if (img.decode) {
+                                await img.decode();
+                            }
+                        } catch (e) { /* ignore */ }
+                        this.cache.set(src, img);
                         this.loadedAssets++;
                         this.updateLoadingProgress();
                         resolve();
@@ -2014,6 +2027,7 @@ class AssetLoader {
 
             // すべてのアセットのロード完了を待つ
             const [loadedAudio] = await Promise.all([audioPromise, ...imagePromises]);
+            window.__imageCache = this.cache;
             
             // グローバルのaudio要素に設定
             window.audio = loadedAudio;
