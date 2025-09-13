@@ -12,7 +12,7 @@ const titleArea = document.querySelector('.title-area h2');
 const BPM = 170;
 const BEATS_PER_SECOND = BPM / 60;
 const BEAT_INTERVAL = 60 / BPM; // 1拍の長さ（秒）
-const TOTAL_DURATION = 254; // 4:14 in seconds
+const TOTAL_DURATION = 283; // 4:42 in seconds
 
 
 const HIRAGANA = [
@@ -426,79 +426,86 @@ STAGE_CONFIGS[5] = {
                 lineDuration: 2.5,
                 // 歌詞（仮・すべて時間指定、約5分想定）
                 lines: [
-                    { text: "~♪", start: 0.0, end: 4.2 },
-                    { text: "(Don't fight it)", start: 0.0, end: 4.2 },
-                    { text: "(Don't fight it)", start: 4.2, end: 8.4 },
-                    { text: "(Don't fight it)", start: 8.4, end: 12.6 },
-                    { text: "(Don't fight it)", start: 12.6, end: 16.8 },
-                    { text: "Don't fight it", start: 16.8, end: 21.0 },
-                    { text: "Don't fight it", start: 21.0, end: 25.2 },
-                    { text: "Don't fight it", start: 25.2, end: 29.4 },
-                    { text: "(Don't fight it)", start: 29.4, end: 33.6 },
-                    { text: "Don't fight it", start: 33.6, end: 37.8 },
-                    { text: "Don't fight it", start: 37.8, end: 42.0 },
-                    { text: "Don't fight it", start: 42.0, end: 46.2 },
-                    { text: "(Don't fight it)", start: 46.2, end: 50.4 },
-                    { text: "Don't fight it", start: 50.4, end: 54.6 },
-                    { text: "Don't fight it", start: 54.6, end: 58.8 },
-                    { text: "Don't fight it", start: 58.8, end: 63.0 },
-                    { text: "(Don't fight it)", start: 63.0, end: 67.2 },
-                    { text: "Don't fight it", start: 67.2, end: 71.4 },
-                    { text: "Don't fight it", start: 71.4, end: 75.6 },
-                    { text: "Don't fight it", start: 75.6, end: 79.8 },
-                    { text: "(Don't fight it)", start: 79.8, end: 84.0 },
-                    { text: "Don't fight it", start: 84.0, end: 88.2 },
-                    { text: "Don't fight it", start: 88.2, end: 92.4 },
-                    { text: "Don't fight it", start: 92.4, end: 96.6 },
-                    { text: "(Don't fight it)", start: 96.6, end: 100.8 },
-                    { text: "Just like you never broke my heart", start: 100.8, end: 105.0 },
-                    { text: "Like you never said the words", start: 105.0, end: 109.2 },
-                    { text: "Two worlds never further apart", start: 109.2, end: 113.4 },
-                    { text: "Now go", start: 113.4, end: 117.6 },
-                    { text: "And life will never be the same", start: 117.6, end: 121.8 },
-                    { text: "But I will keep on finding my way", start: 121.8, end: 126.0 },
-                    { text: "I'll move on to get to my brighter day", start: 126.0, end: 130.2 },
-                    { text: "(Don't fight it)", start: 130.2, end: 134.4 },
-                    { text: "(Don't fight it)", start: 134.4, end: 138.6 },
-                    { text: "(Don't fight it)", start: 138.6, end: 142.8 },
-                    { text: "Just like you never broke my heart", start: 142.8, end: 147.0 },
-                    { text: "Like you never said the words", start: 147.0, end: 151.2 },
-                    { text: "Two worlds never further apart", start: 151.2, end: 155.4 },
-                    { text: "Now go", start: 155.4, end: 159.6 },
-                    { text: "And I will never be the same", start: 159.6, end: 163.8 },
-                    { text: "But I will keep on finding a way", start: 163.8, end: 168.0 },
-                    { text: "I'll move on to get to a brighter day", start: 168.0, end: 172.2 },
-                    { text: "Don't fight it", start: 172.2, end: 176.4 },
-                    { text: "Don't fight it", start: 176.4, end: 180.6 },
-                    { text: "Don't fight it", start: 180.6, end: 184.8 },
-                    { text: "Like you never said the words", start: 184.8, end: 189.0 },
-                    { text: "Don't fight it", start: 189.0, end: 193.2 },
-                    { text: "Don't fight it", start: 193.2, end: 197.4 },
-                    { text: "(Don't fight it)", start: 197.4, end: 201.6 },
-                    { text: "Don't fight it", start: 201.6, end: 205.8 },
-                    { text: "Don't fight it", start: 205.8, end: 210.0 },
-                    { text: "Don't fight it", start: 210.0, end: 214.2 },
-                    { text: "Don't fight it", start: 214.2, end: 218.4 },
-                    { text: "Like you never said the words", start: 218.4, end: 222.6 },
-                    { text: "Don't fight it", start: 222.6, end: 226.8 },
-                    { text: "Don't fight it", start: 226.8, end: 231.0 },
-                    { text: "I'll move on to get to a brighter day", start: 231.0, end: 235.2 },
-                    { text: "Don't fight it", start: 235.2, end: 239.4 },
-                    { text: "Don't fight it", start: 239.4, end: 243.6 },
-                    { text: "Don't fight it", start: 243.6, end: 247.8 },
-                    { text: "(Don't fight it)", start: 247.8, end: 252.0 },
-                    { text: "Don't fight it", start: 252.0, end: 256.2 },
-                    { text: "Don't fight it", start: 256.2, end: 260.4 },
-                    { text: "Don't fight it", start: 260.4, end: 264.6 },
-                    { text: "(Don't fight it)", start: 264.6, end: 268.8 },
-                    { text: "Don't fight it", start: 268.8, end: 273.0 },
-                    { text: "Don't fight it", start: 273.0, end: 277.2 },
-                    { text: "Don't fight it", start: 277.2, end: 281.4 },
-                    { text: "(Don't fight it)", start: 281.4, end: 285.6 },
-                    { text: "Don't fight it", start: 285.6, end: 289.8 },
-                    { text: "Don't fight it", start: 289.8, end: 294.0 },
-                    { text: "Don't fight it", start: 294.0, end: 298.2 },
-                    { text: "(Don't fight it)", start: 298.2, end: 302.4 }
+                    { text: "~♪", start: 0.0, end: 17.2 },
+                    { text: "(Don't fight it)", start: 17.2, end: 18.7 },
+                    { text: "(Don't fight it)", start: 18.7, end: 20.2 },
+                    { text: "(Don't fight it)", start: 20.2, end: 21.5 },
+                    { text: "(Don't fight it)", start: 21.5, end: 22.6 },
+                    { text: "~♪", start: 22.6, end: 34.2 },
+                    { text: "Don't fight it", start: 34.2, end: 35.6 },
+                    { text: "Don't fight it", start: 35.6, end: 37.0 },
+                    { text: "Don't fight it", start: 37.0, end: 38.4 },
+                    { text: "(Don't fight it)", start: 38.4, end: 39.8 },
+                    { text: "Don't fight it", start: 39.8, end: 41.2 },
+                    { text: "Don't fight it", start: 41.2, end: 42.6 },
+                    { text: "Don't fight it", start: 42.6, end: 44.0 },
+                    { text: "(Don't fight it)", start: 44.0, end: 45.0 },
+                    { text: "~♪", start: 45.0, end: 51.0 },
+                    { text: "Don't fight it", start: 51.0, end: 52.2 },
+                    { text: "Don't fight it", start: 52.2, end: 53.6 },
+                    { text: "Don't fight it", start: 53.6, end: 55.0 },
+                    { text: "(Don't fight it)", start: 55.0, end: 56.4 },
+                    { text: "~♪", start: 56.4, end: 90.7 },
+                    { text: "Don't fight it", start: 90.7, end: 92.1 },
+                    { text: "Don't fight it", start: 92.1, end: 93.5 },
+                    { text: "Don't fight it", start: 93.5, end: 94.9 },
+                    { text: "(Don't fight it)", start: 94.9, end: 96.3 },
+                    { text: "Don't fight it", start: 96.3, end: 97.7 },
+                    { text: "Don't fight it", start: 97.7, end: 99.1 },
+                    { text: "Don't fight it", start: 99.1, end: 100.5 },
+                    { text: "(Don't fight it)", start: 100.5, end: 101.7 },
+                    { text: "~♪", start: 101.7, end: 136.4 },
+                    { text: "Just like you never broke my heart", start: 136.4, end: 139.4 },
+                    { text: "Like you never said the words", start: 139.4, end: 142.0 },
+                    { text: "Two worlds never further apart", start: 142.0, end: 144.6 },
+                    { text: "Now go", start: 146.4, end: 147.6 },
+                    { text: "And life will never be the same", start: 147.6, end: 150.6 },
+                    { text: "But I will keep on finding my way", start: 150.6, end: 153.5 },
+                    { text: "I'll move on to get to my brighter day", start: 153.5, end: 157.3 },
+                    { text: "~♪", start: 157.3, end: 186.7 },
+                    { text: "(Don't fight it)", start: 186.7, end: 188.2 },
+                    { text: "(Don't fight it)", start: 188.2, end: 189.6 },
+                    { text: "(Don't fight it)", start: 189.6, end: 190.7 },
+                    { text: "~♪", start: 190.7, end: 215.3 },
+                    { text: "Just like you never broke my heart", start: 215.4, end: 218.4 },
+                    { text: "Like you never said the words", start: 218.4, end: 221.3 },
+                    { text: "Two worlds never further apart", start: 221.3, end: 225.4 },
+                    { text: "Now go", start: 225.4, end: 226.6 },
+                    { text: "And I will never be the same", start: 226.6, end: 229.6 },
+                    { text: "But I will keep on finding a way", start: 229.6, end: 232.5 },
+                    { text: "I'll move on to get to a brighter day", start: 232.5, end: 237.5 },
+                    { text: "Don't fight it", start: 237.5, end: 238.9 },
+                    { text: "Don't fight it", start: 238.9, end: 240.3 },
+                    { text: "Don't fight it", start: 240.3, end: 241.2 },
+                    { text: "Like you never said the words", start: 241.2, end: 243.1 },
+                    { text: "Don't fight it", start: 243.1, end: 244.5 },
+                    { text: "Don't fight it", start: 244.5, end: 245.9 },
+                    { text: "(Don't fight it)", start: 245.9, end: 247.3 },
+                    { text: "Don't fight it", start: 247.3, end: 248.7 },
+                    { text: "Don't fight it", start: 248.7, end: 250.1 },
+                    { text: "Don't fight it", start: 250.1, end: 251.5 },
+                    { text: "Don't fight it", start: 251.5, end: 252.5 },
+                    { text: "Like you never said the words", start: 252.5, end: 254.3 },
+                    { text: "Don't fight it", start: 254.3, end: 255.7 },
+                    { text: "Don't fight it", start: 255.7, end: 256.4 },
+                    { text: "I'll move on to get to a brighter day", start: 256.4, end: 259.9 },
+                    { text: "Don't fight it", start: 259.9, end: 261.3 },
+                    { text: "Don't fight it", start: 261.3, end: 262.7 },
+                    { text: "Don't fight it", start: 262.7, end: 264.1 },
+                    { text: "(Don't fight it)", start: 264.1, end: 266.1 },
+                    { text: "Don't fight it", start: 266.1, end: 267.5 },
+                    { text: "Don't fight it", start: 267.5, end: 268.9 },
+                    { text: "Don't fight it", start: 268.9, end: 270.3 },
+                    { text: "(Don't fight it)", start: 270.3, end: 271.4 },
+                    { text: "Don't fight it", start: 271.4, end: 272.8 },
+                    { text: "Don't fight it", start: 272.8, end: 274.2 },
+                    { text: "Don't fight it", start: 274.2, end: 275.6 },
+                    { text: "(Don't fight it)", start: 275.6, end: 277.0 },
+                    { text: "Don't fight it", start: 277.0, end: 278.4 },
+                    { text: "Don't fight it", start: 278.4, end: 279.8 },
+                    { text: "Don't fight it", start: 279.8, end: 281.2 },
+                    { text: "(Don't fight it)", start: 281.2, end: 282.4 },
+                    { text: "~♪", start: 282.4, end: 300.0 }
                 ]
             }
         }
@@ -724,6 +731,192 @@ const correctPatterns = {
     16: [1, 2, 3, 4],
     17: [2, 4, 6, 8]
 };
+
+//====================================================
+// シームレスループ用オーディオプレイヤー（Web Audio API）
+//====================================================
+class SeamlessLoopPlayer {
+    constructor(url) {
+        this.url = url;
+        this.context = null;
+        this.gainNode = null;
+        this.buffer = null;
+        this.source = null;
+        this._volume = 0.7;
+        this._isPlaying = false;
+        this._startTime = 0;    // context currentTime at start
+        this._offset = 0;       // seconds into buffer when stopped/paused
+        this._loopStart = 0;
+        this._loopEnd = 0;      // set after decode
+        this._ready = null;     // Promise for decode
+    }
+
+    get isReady() { return !!this.buffer; }
+
+    async _ensureContext() {
+        if (!this.context) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            this.context = new AC();
+            this.gainNode = this.context.createGain();
+            this.gainNode.gain.value = this._volume;
+            this.gainNode.connect(this.context.destination);
+        }
+        if (this.context.state === 'suspended') {
+            try { await this.context.resume(); } catch (_) {}
+        }
+    }
+
+    async _load() {
+        if (this._ready) return this._ready;
+        this._ready = (async () => {
+            const res = await fetch(this.url);
+            const arrayBuf = await res.arrayBuffer();
+            await this._ensureContext();
+            const buffer = await this.context.decodeAudioData(arrayBuf.slice(0));
+            this.buffer = buffer;
+            const { loopStart, loopEnd } = SeamlessLoopPlayer._detectLoopPoints(buffer);
+            this._loopStart = loopStart;
+            this._loopEnd = loopEnd;
+        })();
+        return this._ready;
+    }
+
+    static _detectLoopPoints(buffer) {
+        const sr = buffer.sampleRate;
+        const ch = buffer.numberOfChannels;
+        const len = buffer.length;
+        const thresh = 0.0005;
+        let first = 0;
+        let last = len - 1;
+
+        outerHead:
+        for (let i = 0; i < len; i++) {
+            for (let c = 0; c < ch; c++) {
+                if (Math.abs(buffer.getChannelData(c)[i]) > thresh) { first = i; break outerHead; }
+            }
+        }
+        outerTail:
+        for (let i = len - 1; i >= 0; i--) {
+            for (let c = 0; c < ch; c++) {
+                if (Math.abs(buffer.getChannelData(c)[i]) > thresh) { last = i; break outerTail; }
+            }
+        }
+        let loopStart = Math.max(0, (first / sr) - 0.001);
+        let loopEnd = Math.min(buffer.duration, ((last + 1) / sr) + 0.001);
+        if (!(loopEnd > loopStart + 0.01)) {
+            loopStart = 0;
+            loopEnd = buffer.duration;
+        }
+        return { loopStart, loopEnd };
+    }
+
+    _createSource(startOffsetSec) {
+        if (!this.buffer) return;
+        const src = this.context.createBufferSource();
+        src.buffer = this.buffer;
+        src.loop = true;
+        src.loopStart = this._loopStart;
+        src.loopEnd = this._loopEnd || this.buffer.duration;
+        src.connect(this.gainNode);
+        const offset = this._wrapToLoop(startOffsetSec);
+        src.start(0, offset);
+        this._startTime = this.context.currentTime - offset;
+        this.source = src;
+    }
+
+    _wrapToLoop(sec) {
+        const start = this._loopStart;
+        const end = this._loopEnd || (this.buffer ? this.buffer.duration : 0);
+        const span = Math.max(0.001, end - start);
+        let rel = sec - start;
+        rel = ((rel % span) + span) % span;
+        return start + rel;
+    }
+
+    async play() {
+        await this._ensureContext();
+        await this._load();
+        if (this._isPlaying) return;
+        const v = this._volume;
+        this.gainNode.gain.cancelScheduledValues(this.context.currentTime);
+        this.gainNode.gain.setValueAtTime(0, this.context.currentTime);
+        this.gainNode.gain.linearRampToValueAtTime(v, this.context.currentTime + 0.03);
+        this._createSource(this._offset);
+        this._isPlaying = true;
+    }
+
+    pause() {
+        if (!this._isPlaying) return;
+        const now = this.context.currentTime;
+        const t = now - this._startTime;
+        const dur = this.duration;
+        const rel = dur > 0 ? (t % dur) : 0;
+        this._offset = this._loopStart + rel;
+        try {
+            this.gainNode.gain.cancelScheduledValues(this.context.currentTime);
+            this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, this.context.currentTime);
+            this.gainNode.gain.linearRampToValueAtTime(0, this.context.currentTime + 0.02);
+        } catch (_) {}
+        try { this.source && this.source.stop(); } catch (_) {}
+        try { this.source && this.source.disconnect(); } catch (_) {}
+        this.source = null;
+        this._isPlaying = false;
+    }
+
+    async _repositionPlayingSource() {
+        if (!this._isPlaying) return;
+        await this._ensureContext();
+        await this._load();
+        const v = this._volume;
+        const now = this.context.currentTime;
+        try {
+            // quick fade-out
+            this.gainNode.gain.cancelScheduledValues(now);
+            this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, now);
+            this.gainNode.gain.linearRampToValueAtTime(0, now + 0.005);
+        } catch(_) {}
+        try { this.source && this.source.stop(now + 0.006); } catch(_) {}
+        try { this.source && this.source.disconnect(); } catch(_) {}
+        this.source = null;
+        // start new source at requested offset
+        this._createSource(this._offset);
+        try {
+            // quick fade-in
+            const t = this.context.currentTime;
+            this.gainNode.gain.setValueAtTime(0, t);
+            this.gainNode.gain.linearRampToValueAtTime(v, t + 0.01);
+        } catch(_) {}
+    }
+
+    get currentTime() {
+        if (!this.buffer) return Math.max(0, (this._offset || 0) - this._loopStart);
+        if (!this._isPlaying) return this._wrapToLoop(this._offset) - this._loopStart;
+        const now = this.context.currentTime;
+        const t = now - this._startTime;
+        return this._wrapToLoop(t) - this._loopStart;
+    }
+
+    set currentTime(sec) {
+        this._offset = this._loopStart + Math.max(0, sec);
+        if (this._isPlaying) {
+            // reposition without pausing globally
+            this._repositionPlayingSource();
+        }
+    }
+
+    get duration() {
+        if (!this.buffer) return 0;
+        const start = this._loopStart;
+        const end = this._loopEnd || this.buffer.duration;
+        return Math.max(0, end - start);
+    }
+
+    get volume() { return this._volume; }
+    set volume(v) {
+        this._volume = Math.max(0, Math.min(1, v));
+        if (this.gainNode) this.gainNode.gain.value = this._volume;
+    }
+}
 //====================================================
 // ゲーム状態管理
 //====================================================
@@ -737,7 +930,7 @@ let lastBeat = -1;
 let isLoopComplete = false;
 let isHolding = false;
 let holdStartBeat = -1;
-const audio = new Audio('assets/audio/MUSIC1.mp3');
+const audio = new SeamlessLoopPlayer('assets/audio/MUSIC.mp3');
 audio.volume = 0.7;
 
 //====================================================
@@ -1437,6 +1630,10 @@ function update() {
         updateRhythmDots();
         updateProblemElements();
     }
+    // デバッグ用タイムスライダーを同期
+    if (typeof debugTools?.updateTimeSlider === 'function') {
+        debugTools.updateTimeSlider(currentTime);
+    }
     requestAnimationFrame(update);
 }
 
@@ -1470,11 +1667,7 @@ playButton.addEventListener('click', () => {
     isPlaying = !isPlaying;
 });
 
-audio.addEventListener('ended', () => {
-    currentTime = 0;
-    audio.currentTime = 0;
-    audio.play();
-});
+// Web Audio のシームレスループを使うため、ended での手動ループは不要
 
 prevButton.addEventListener('click', () => {
     clickCounts.prev++;
@@ -1499,14 +1692,15 @@ nextButton.addEventListener('click', () => {
 });
 
 // プログレスバーのドラッグ制御
+// プログレスバー: つまみ以外でも即ジャンプ＆ドラッグ開始
 progressBarElement.addEventListener('mousedown', (event) => {
-    const knob = document.getElementById('progressKnob');
-    const knobRect = knob.getBoundingClientRect();
+    isDragging = true;
+    updateTimeFromClick(event, true);
+});
 
-    if (event.clientX >= knobRect.left && event.clientX <= knobRect.right &&
-        event.clientY >= knobRect.top && event.clientY <= knobRect.bottom) {
-        isDragging = true;
-    }
+// バーをクリックしただけでもジャンプ
+progressBarElement.addEventListener('click', (event) => {
+    updateTimeFromClick(event, true);
 });
 
 document.addEventListener('mousemove', (event) => {
@@ -1521,15 +1715,9 @@ document.addEventListener('mouseup', () => {
 
 // タッチデバイス用のイベントリスナー
 function handleTouchStart(event) {
-    const touch = event.touches[0];
-    const knob = document.getElementById('progressKnob');
-    const knobRect = knob.getBoundingClientRect();
-
-    if (touch.clientX >= knobRect.left && touch.clientX <= knobRect.right &&
-        touch.clientY >= knobRect.top && touch.clientY <= knobRect.bottom) {
-        isDragging = true;
-        progressBarElement.addEventListener('touchmove', handleTouchMove);
-    }
+    isDragging = true;
+    progressBarElement.addEventListener('touchmove', handleTouchMove);
+    updateTimeFromTouch(event);
 }
 
 function handleTouchMove(event) {
@@ -1605,6 +1793,80 @@ const debugTools = {
                 this.forceJumpToStage(targetStage);
             }
         });
+
+        // デバッグ用 再生時間バー
+        (function setupDebugTimeBar(self){
+            const toolsRoot = document.getElementById('debugTools');
+            if (!toolsRoot || toolsRoot.querySelector('#debugTimeSlider')) return;
+
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.gap = '8px';
+            row.style.alignItems = 'center';
+            row.style.marginTop = '6px';
+
+            const label = document.createElement('div');
+            label.textContent = '再生時間:';
+            label.style.color = 'white';
+            label.style.fontSize = '12px';
+
+            const timeValue = document.createElement('div');
+            timeValue.id = 'debugTimeValue';
+            timeValue.textContent = '0:00';
+            timeValue.style.color = 'white';
+            timeValue.style.fontSize = '12px';
+            timeValue.style.width = '48px';
+            timeValue.style.textAlign = 'right';
+
+            const slider = document.createElement('input');
+            slider.type = 'range';
+            slider.id = 'debugTimeSlider';
+            slider.min = '0';
+            slider.max = String(TOTAL_DURATION);
+            slider.step = '0.05';
+            slider.value = '0';
+            slider.style.flex = '1';
+
+            row.appendChild(label);
+            row.appendChild(slider);
+            row.appendChild(timeValue);
+            toolsRoot.appendChild(row);
+
+            const startScrub = () => { self._scrubbing = true; };
+            const endScrub = () => { self._scrubbing = false; };
+            slider.addEventListener('mousedown', startScrub);
+            slider.addEventListener('touchstart', startScrub, { passive: true });
+            slider.addEventListener('mouseup', endScrub);
+            slider.addEventListener('touchend', endScrub);
+
+            const seekTo = (sec) => {
+                currentTime = sec;
+                audio.currentTime = sec;
+                self.updateTimeLabel(sec);
+                updateProgress();
+                updateProblemElements();
+                updateRhythmDots();
+            };
+
+            slider.addEventListener('input', () => {
+                const sec = parseFloat(slider.value) || 0;
+                const now = (window.performance && performance.now) ? performance.now() : Date.now();
+                if (!self._lastSeekAt || now - self._lastSeekAt > 50) {
+                    self._lastSeekAt = now;
+                    seekTo(sec);
+                } else {
+                    // 軽量に表示だけ更新
+                    self.updateTimeLabel(sec);
+                }
+            });
+            slider.addEventListener('change', () => {
+                const sec = parseFloat(slider.value) || 0;
+                seekTo(sec);
+            });
+
+            self._timeSlider = slider;
+            self._timeLabel = timeValue;
+        })(this);
     },
 
     // 強制的にステージを移動する関数
@@ -1624,6 +1886,19 @@ const debugTools = {
             // UI更新
             updateStageContent();
             console.log(`デバッグ: ステージ${stageNumber}に移動しました`);
+        }
+    },
+    updateTimeLabel(sec) {
+        if (this._timeLabel) {
+            this._timeLabel.textContent = formatTime(sec);
+        }
+    },
+    updateTimeSlider(sec) {
+        if (!this._timeSlider || this._scrubbing) return;
+        const clamped = Math.max(0, Math.min(TOTAL_DURATION, sec));
+        if (this._timeSlider.value !== String(clamped)) {
+            this._timeSlider.value = String(clamped);
+            this.updateTimeLabel(clamped);
         }
     }
 };
@@ -1943,6 +2218,10 @@ async function initialize() {
     const startGame = () => {
         modal.style.display = 'none';
         container.style.visibility = 'visible';
+        // ユーザー操作のタイミングでデコードだけ先に済ませる（シームレス再生の準備）
+        if (audio && typeof audio._ensureContext === 'function') {
+            audio._ensureContext().then(() => audio._load()).catch(() => {});
+        }
         updateStageContent();
         updateProgress();
         requestAnimationFrame(update);
