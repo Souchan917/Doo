@@ -18,6 +18,20 @@ body {
     transition: background-color 0.5s ease;
 }
 
+/* Prevent text selection and callout on interactive UI */
+html, body, .container, button, .control-button, .modal-button, .share-button, .reset-button, .hint-button, .progress-bar, .problem-area, .title-area, .answer-area, .lyrics-wrap, img {
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* Improve touch behavior for buttons (avoid double-tap zoom, etc.) */
+button, .control-button, .modal-button, .share-button, .reset-button, .hint-button {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
 /* ステージごとのテーマカラー用のクラス */
 /* ステージごとのテーマカラー用のクラス */
 body.stage-0 { background-color: #808080; }  /* チュートリアル: 灰色 */

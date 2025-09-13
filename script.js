@@ -1696,6 +1696,11 @@ playButton.addEventListener('click', async () => {
     }
 });
 
+// Disable long-press context menu on mobile
+document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+});
+
 // Web Audio のシームレスループを使うため、ended での手動ループは不要
 
 prevButton.addEventListener('click', () => {
@@ -1803,6 +1808,7 @@ const debugTools = {
 
         // キーボードショートカット
         document.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
             let targetStage = null;
             // 物理キー優先で判定（Shiftの記号化対策）
             const code = e.code || '';
@@ -2375,6 +2381,7 @@ async function initialize() {
 
 
 document.addEventListener('keydown', (event) => {
+    if (event.repeat) return;
     // エンターキー(13)またはスペースキー(32)が押された場合
     if (event.keyCode === 13 || event.keyCode === 32) {
         // デフォルトの動作を防止（スペースキーでのスクロールなど）
