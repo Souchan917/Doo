@@ -1947,7 +1947,8 @@ class AssetLoader {
         if (this.progressText) this.progressText.textContent = `${percentage}%`;
         if (this.progressImage) {
             this.progressImage.style.setProperty('--p', percentage);
-            this.progressImage.style.setProperty('--a', `${percentage * 3.6}deg`);
+            // use turn unit for stable conic angle math
+            this.progressImage.style.setProperty('--a', `${percentage / 100}turn`);
         }
     }
 
@@ -1955,6 +1956,7 @@ class AssetLoader {
         try {
             // 画像のリストを作成
             const imageList = [
+                'assets/images/load/load.png',
                 // パズル画像
                 ...Object.values(PUZZLE_IMAGES),
                 
@@ -1964,7 +1966,6 @@ class AssetLoader {
                 'assets/images/controls/prev.png',
                 'assets/images/controls/next.png',
                 'assets/images/controls/hint.png',
-                'assets/images/load/load.png',
 
                 // Stage 8の月の画像
                 ...Array.from({ length: 8 }, (_, i) => `assets/images/puzzles/stage8/moon${i}.png`),

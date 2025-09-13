@@ -718,27 +718,25 @@ body.stage-16 .reset-container.show {
     inset: 0;
     border-radius: 50%;
     background: url('assets/images/load/load.png') center / contain no-repeat;
-    /* Reveal counter-clockwise from 12 o'clock */
+    /* Start at 12 o'clock and grow counter-clockwise */
     -webkit-mask: conic-gradient(
-        from calc(0deg - var(--a, 0deg)),
-        #000 var(--a, 0deg),
-        transparent 0
+        from -90deg,
+        transparent 0turn,
+        transparent calc(1turn - var(--a, 0turn)),
+        #000 calc(1turn - var(--a, 0turn)),
+        #000 1turn
     );
             mask: conic-gradient(
-        from calc(-90deg - var(--a, 0deg)),
-        #000 var(--a, 0deg),
-        transparent 0
+        from -90deg,
+        transparent 0turn,
+        transparent calc(1turn - var(--a, 0turn)),
+        #000 calc(1turn - var(--a, 0turn)),
+        #000 1turn
     );
 }
 
-.loading-image::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.18) inset,
-                0 8px 24px rgba(0,0,0,0.35) inset;
-}
+/* removed outer rim for clean edge */
+.loading-image::after { content: none; }
 
 .loading-progress {
     position: absolute;
