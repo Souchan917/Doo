@@ -724,12 +724,12 @@ body.stage-16 .reset-container.show {
     background: url('assets/images/load/load.png') center / contain no-repeat;
     /* Reveal counter-clockwise from 12 o'clock */
     -webkit-mask: conic-gradient(
-        from calc(-90deg - var(--a, 0deg)),
+        from calc(-0deg - var(--a, 0deg)),
         #000 var(--a, 0deg),
         transparent 0
     );
             mask: conic-gradient(
-        from calc(-90deg - var(--a, 0deg)),
+        from calc(-0deg - var(--a, 0deg)),
         #000 var(--a, 0deg),
         transparent 0
     );
