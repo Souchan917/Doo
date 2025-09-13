@@ -44,7 +44,8 @@ const GIMMICK_TYPES = {
     DYNAMIC_TEXT_GROUP: 'dynamic_text_group',
     RHYTHM_DOTS: 'rhythm_dots',
     NUMBER_TEXT: 'number_text',
-    CLICK_COUNTER: 'click_counter'  // 新しく追加
+    CLICK_COUNTER: 'click_counter',  // 新しく追加
+    LYRICS: 'lyrics'
 };
 // クリック回数を追跡する変数を追加
 const clickCounts = {
@@ -402,6 +403,108 @@ const STAGE_CONFIGS = {
     
 };
 
+// --- Stage 5 を歌詞表示に差し替え（シンプル実装・他ステージへ非影響）---
+STAGE_CONFIGS[5] = {
+    gimmicks: [
+        {
+            type: GIMMICK_TYPES.LYRICS,
+            settings: {
+                // 位置・サイズ（自由に調整可）
+                x: 50,
+                y: 50,
+                size: 320,
+                // スタイル（自由に調整可）
+                fontSize: 28,
+                lineHeight: 1.3,
+                color: '#111',
+                align: 'center',
+                // 表示モード: 1行ずつのみ表示
+                displayMode: 'current',
+                // タイミング（仮）。時間未指定のときは autoStep で順番に表示
+                autoStartAt: 0,
+                autoStep: 2.5,
+                lineDuration: 2.5,
+                // 歌詞（仮・すべて時間指定、約5分想定）
+                lines: [
+                    { text: "~♪", start: 0.0, end: 4.2 },
+                    { text: "(Don't fight it)", start: 0.0, end: 4.2 },
+                    { text: "(Don't fight it)", start: 4.2, end: 8.4 },
+                    { text: "(Don't fight it)", start: 8.4, end: 12.6 },
+                    { text: "(Don't fight it)", start: 12.6, end: 16.8 },
+                    { text: "Don't fight it", start: 16.8, end: 21.0 },
+                    { text: "Don't fight it", start: 21.0, end: 25.2 },
+                    { text: "Don't fight it", start: 25.2, end: 29.4 },
+                    { text: "(Don't fight it)", start: 29.4, end: 33.6 },
+                    { text: "Don't fight it", start: 33.6, end: 37.8 },
+                    { text: "Don't fight it", start: 37.8, end: 42.0 },
+                    { text: "Don't fight it", start: 42.0, end: 46.2 },
+                    { text: "(Don't fight it)", start: 46.2, end: 50.4 },
+                    { text: "Don't fight it", start: 50.4, end: 54.6 },
+                    { text: "Don't fight it", start: 54.6, end: 58.8 },
+                    { text: "Don't fight it", start: 58.8, end: 63.0 },
+                    { text: "(Don't fight it)", start: 63.0, end: 67.2 },
+                    { text: "Don't fight it", start: 67.2, end: 71.4 },
+                    { text: "Don't fight it", start: 71.4, end: 75.6 },
+                    { text: "Don't fight it", start: 75.6, end: 79.8 },
+                    { text: "(Don't fight it)", start: 79.8, end: 84.0 },
+                    { text: "Don't fight it", start: 84.0, end: 88.2 },
+                    { text: "Don't fight it", start: 88.2, end: 92.4 },
+                    { text: "Don't fight it", start: 92.4, end: 96.6 },
+                    { text: "(Don't fight it)", start: 96.6, end: 100.8 },
+                    { text: "Just like you never broke my heart", start: 100.8, end: 105.0 },
+                    { text: "Like you never said the words", start: 105.0, end: 109.2 },
+                    { text: "Two worlds never further apart", start: 109.2, end: 113.4 },
+                    { text: "Now go", start: 113.4, end: 117.6 },
+                    { text: "And life will never be the same", start: 117.6, end: 121.8 },
+                    { text: "But I will keep on finding my way", start: 121.8, end: 126.0 },
+                    { text: "I'll move on to get to my brighter day", start: 126.0, end: 130.2 },
+                    { text: "(Don't fight it)", start: 130.2, end: 134.4 },
+                    { text: "(Don't fight it)", start: 134.4, end: 138.6 },
+                    { text: "(Don't fight it)", start: 138.6, end: 142.8 },
+                    { text: "Just like you never broke my heart", start: 142.8, end: 147.0 },
+                    { text: "Like you never said the words", start: 147.0, end: 151.2 },
+                    { text: "Two worlds never further apart", start: 151.2, end: 155.4 },
+                    { text: "Now go", start: 155.4, end: 159.6 },
+                    { text: "And I will never be the same", start: 159.6, end: 163.8 },
+                    { text: "But I will keep on finding a way", start: 163.8, end: 168.0 },
+                    { text: "I'll move on to get to a brighter day", start: 168.0, end: 172.2 },
+                    { text: "Don't fight it", start: 172.2, end: 176.4 },
+                    { text: "Don't fight it", start: 176.4, end: 180.6 },
+                    { text: "Don't fight it", start: 180.6, end: 184.8 },
+                    { text: "Like you never said the words", start: 184.8, end: 189.0 },
+                    { text: "Don't fight it", start: 189.0, end: 193.2 },
+                    { text: "Don't fight it", start: 193.2, end: 197.4 },
+                    { text: "(Don't fight it)", start: 197.4, end: 201.6 },
+                    { text: "Don't fight it", start: 201.6, end: 205.8 },
+                    { text: "Don't fight it", start: 205.8, end: 210.0 },
+                    { text: "Don't fight it", start: 210.0, end: 214.2 },
+                    { text: "Don't fight it", start: 214.2, end: 218.4 },
+                    { text: "Like you never said the words", start: 218.4, end: 222.6 },
+                    { text: "Don't fight it", start: 222.6, end: 226.8 },
+                    { text: "Don't fight it", start: 226.8, end: 231.0 },
+                    { text: "I'll move on to get to a brighter day", start: 231.0, end: 235.2 },
+                    { text: "Don't fight it", start: 235.2, end: 239.4 },
+                    { text: "Don't fight it", start: 239.4, end: 243.6 },
+                    { text: "Don't fight it", start: 243.6, end: 247.8 },
+                    { text: "(Don't fight it)", start: 247.8, end: 252.0 },
+                    { text: "Don't fight it", start: 252.0, end: 256.2 },
+                    { text: "Don't fight it", start: 256.2, end: 260.4 },
+                    { text: "Don't fight it", start: 260.4, end: 264.6 },
+                    { text: "(Don't fight it)", start: 264.6, end: 268.8 },
+                    { text: "Don't fight it", start: 268.8, end: 273.0 },
+                    { text: "Don't fight it", start: 273.0, end: 277.2 },
+                    { text: "Don't fight it", start: 277.2, end: 281.4 },
+                    { text: "(Don't fight it)", start: 281.4, end: 285.6 },
+                    { text: "Don't fight it", start: 285.6, end: 289.8 },
+                    { text: "Don't fight it", start: 289.8, end: 294.0 },
+                    { text: "Don't fight it", start: 294.0, end: 298.2 },
+                    { text: "(Don't fight it)", start: 298.2, end: 302.4 }
+                ]
+            }
+        }
+    ]
+};
+
 const STAGE_NAMES = [
     "チュートリアル",
     "Do", "イコールの下が答えだ！", "輝き",
@@ -634,7 +737,7 @@ let lastBeat = -1;
 let isLoopComplete = false;
 let isHolding = false;
 let holdStartBeat = -1;
-const audio = new Audio('assets/audio/MUSIC.mp3');
+const audio = new Audio('assets/audio/MUSIC1.mp3');
 audio.volume = 0.7;
 
 //====================================================
@@ -715,6 +818,24 @@ class GimmickManager {
             });
             
             element.appendChild(container);
+        }
+
+        if (config.type === GIMMICK_TYPES.LYRICS) {
+            // テキストを入れるコンテナ
+            const textWrap = document.createElement('div');
+            textWrap.className = 'lyrics-wrap';
+            textWrap.style.position = 'absolute';
+            textWrap.style.left = '50%';
+            textWrap.style.top = '50%';
+            textWrap.style.transform = 'translate(-50%, -50%)';
+            textWrap.style.width = '100%';
+            textWrap.style.height = '100%';
+            textWrap.style.display = 'flex';
+            textWrap.style.flexDirection = 'column';
+            textWrap.style.justifyContent = 'center';
+            textWrap.style.alignItems = 'center';
+            textWrap.style.pointerEvents = 'none';
+            element.appendChild(textWrap);
         }
 
         problemArea.appendChild(element);
@@ -810,6 +931,69 @@ class GimmickManager {
             const isSelected = selectedBeats.has(char.dotIndex + 1);
             charElement.textContent = isSelected ? char.selectedChar : char.defaultChar;
             charElement.style.fontSize = `${textSize * 0.6}px`;
+        });
+    }
+
+    _updateLyricsGimmick(element, config, size, scaleFactor) {
+        const settings = config.settings || {};
+        const fontSize = (settings.fontSize ? settings.fontSize * scaleFactor : size * 0.15);
+        const lineHeight = settings.lineHeight || 1.3;
+        const color = settings.color || '#111';
+        const align = settings.align || 'center';
+        const mode = settings.displayMode || 'accumulate'; // 'accumulate' or 'current'
+        const autoStep = settings.autoStep != null ? settings.autoStep : 2.5; // 秒
+        const autoStartAt = settings.autoStartAt != null ? settings.autoStartAt : 0;
+        const defaultDuration = settings.lineDuration != null ? settings.lineDuration : 2.5;
+
+        let rawLines = settings.lines || settings.lyrics || [];
+        // 正規化: { text, start, end }
+        const entries = rawLines.map((entry, idx) => {
+            if (typeof entry === 'string') {
+                const start = autoStartAt + idx * autoStep;
+                return { text: entry, start, end: start + defaultDuration };
+            }
+            const start = entry.start != null ? entry.start : (autoStartAt + idx * autoStep);
+            const end = entry.end != null ? entry.end : (start + defaultDuration);
+            return { text: entry.text, start, end };
+        });
+
+        // 表示する行を決定
+        let visible = [];
+        if (mode === 'accumulate') {
+            visible = entries.filter(e => currentTime >= e.start).map(e => e.text);
+        } else {
+            // 現在行のみ（該当なしなら直前の行）
+            const current = entries.find(e => currentTime >= e.start && currentTime < e.end);
+            if (current) {
+                visible = [current.text];
+            } else {
+                const prev = entries.filter(e => currentTime >= e.start).pop();
+                if (prev) visible = [prev.text];
+            }
+        }
+
+        const wrap = element.querySelector('.lyrics-wrap');
+        if (!wrap) return;
+
+        // スタイル
+        wrap.style.textAlign = align;
+        wrap.style.color = color;
+        wrap.style.gap = `${Math.round(fontSize * (lineHeight - 1))}px`;
+
+        // レイアウトに合わせてフォント反映
+        // 既存をクリアして描画（シンプル実装）
+        wrap.innerHTML = '';
+        visible.forEach(line => {
+            const p = document.createElement('div');
+            p.textContent = line;
+            p.style.fontSize = `${fontSize}px`;
+            p.style.lineHeight = `${lineHeight}`;
+            p.style.fontFamily = "'M PLUS Rounded 1c', sans-serif";
+            p.style.fontWeight = '700';
+            // 行の最大横幅を要素幅に合わせる
+            p.style.maxWidth = '90%';
+            p.style.textAlign = align;
+            wrap.appendChild(p);
         });
     }
 
@@ -1024,6 +1208,10 @@ _updateNumberTextGimmick(element, config, containerSize) {
 
                 case GIMMICK_TYPES.CLICK_COUNTER:
                     this._updateClickCounterGimmick(element, gimmickConfig, size);
+                    break;
+
+                case GIMMICK_TYPES.LYRICS:
+                    this._updateLyricsGimmick(element, gimmickConfig, size, scaleFactor);
                     break;
             }
         });
