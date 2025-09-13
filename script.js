@@ -412,9 +412,9 @@ STAGE_CONFIGS[5] = {
                 // 位置・サイズ（自由に調整可）
                 x: 50,
                 y: 50,
-                size: 320,
+                size: 350,
                 // スタイル（自由に調整可）
-                fontSize: 28,
+                fontSize: 33,
                 lineHeight: 1.3,
                 color: '#111',
                 align: 'center',
