@@ -931,7 +931,7 @@ let isLoopComplete = false;
 let isHolding = false;
 let holdStartBeat = -1;
 const audio = new SeamlessLoopPlayer('assets/audio/MUSIC2.mp3');
-audio.volume = 0.7;
+audio.volume = 0.5;
 
 //====================================================
 // ギミック管理クラス
