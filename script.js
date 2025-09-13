@@ -749,6 +749,7 @@ class SeamlessLoopPlayer {
         this._loopStart = 0;
         this._loopEnd = 0;      // set after decode
         this._ready = null;     // Promise for decode
+        this._prefetchedArrayBuffer = null; // AssetLoader から供給される ArrayBuffer を保持
     }
 
     get isReady() { return !!this.buffer; }
@@ -769,16 +770,28 @@ class SeamlessLoopPlayer {
     async _load() {
         if (this._ready) return this._ready;
         this._ready = (async () => {
-            const res = await fetch(this.url);
-            const arrayBuf = await res.arrayBuffer();
+            let arrayBuf = this._prefetchedArrayBuffer;
+            if (!arrayBuf) {
+                const res = await fetch(this.url);
+                arrayBuf = await res.arrayBuffer();
+            }
             await this._ensureContext();
             const buffer = await this.context.decodeAudioData(arrayBuf.slice(0));
             this.buffer = buffer;
             const { loopStart, loopEnd } = SeamlessLoopPlayer._detectLoopPoints(buffer);
             this._loopStart = loopStart;
             this._loopEnd = loopEnd;
+            this._prefetchedArrayBuffer = null; // 使い終わったら解放
         })();
         return this._ready;
+    }
+
+    // 事前にフェッチ済みの ArrayBuffer を提供（ユーザー操作後の初期化で使用）
+    provideArrayBuffer(arrayBuffer) {
+        if (arrayBuffer && arrayBuffer.byteLength > 0) {
+            this._prefetchedArrayBuffer = arrayBuffer;
+            // 既に別の _ready が走っている最中は触らない
+        }
     }
 
     static _detectLoopPoints(buffer) {
@@ -1440,6 +1453,9 @@ function updatePuzzleImage() {
     const imagePath = PUZZLE_IMAGES[currentStage];
     if (imagePath) {
         const imageElement = document.createElement('img');
+        // 初期表示のチラつきを抑えるためデコード優先
+        imageElement.decoding = 'sync';
+        imageElement.loading = 'eager';
         imageElement.src = imagePath;
         imageElement.className = 'puzzle-image';
         imageElement.alt = `Puzzle ${currentStage}`;
@@ -1655,16 +1671,27 @@ function updateTimeFromClick(event, forceUpdate = false) {
     updateProgress();
 }
 
-playButton.addEventListener('click', () => {
+playButton.addEventListener('click', async () => {
     clickCounts.play++;
     if (isPlaying) {
-        audio.pause();
+        try { audio.pause(); } catch (_) {}
         playIcon.src = 'assets/images/controls/play.png';
-    } else {
-        audio.play();
-        playIcon.src = 'assets/images/controls/pause.png';
+        isPlaying = false;
+        return;
     }
-    isPlaying = !isPlaying;
+    try {
+        if (typeof audio._ensureContext === 'function') {
+            await audio._ensureContext();
+        }
+        await audio.play();
+        playIcon.src = 'assets/images/controls/pause.png';
+        isPlaying = true;
+    } catch (err) {
+        // Safari 等で失敗した場合はユーザー操作を促す
+        console.warn('Audio play failed:', err);
+        playIcon.src = 'assets/images/controls/play.png';
+        isPlaying = false;
+    }
 });
 
 // Web Audio のシームレスループを使うため、ended での手動ループは不要
@@ -1938,7 +1965,7 @@ class AssetLoader {
         this.loadingScreen = document.getElementById('loadingScreen');
         this.progressText = this.loadingScreen.querySelector('.loading-progress');
         this.progressImage = this.loadingScreen.querySelector('.loading-image');
-        this.audio = new Audio('assets/audio/MUSIC.mp3');
+        // 音声は HTMLAudio 要素ではロードせず、fetch で ArrayBuffer を事前取得
         this.cache = new Map();
     }
 
@@ -1949,6 +1976,61 @@ class AssetLoader {
             this.progressImage.style.setProperty('--p', percentage);
             // use turn unit for stable conic angle math
             this.progressImage.style.setProperty('--a', `${percentage / 100}turn`);
+        }
+    }
+
+    // Safari対応の新しいローダー（音声は ArrayBuffer のみ事前フェッチ）
+    async loadAll2() {
+        try {
+            const imageList = [
+                'assets/images/load/load.png',
+                ...Object.values(PUZZLE_IMAGES),
+                'assets/images/controls/play.png',
+                'assets/images/controls/pause.png',
+                'assets/images/controls/prev.png',
+                'assets/images/controls/next.png',
+                'assets/images/controls/hint.png',
+                ...Array.from({ length: 8 }, (_, i) => `assets/images/puzzles/stage8/moon${i}.png`),
+                ...Array.from({ length: 8 }, (_, i) => `assets/images/puzzles/stage10/black${i}.png`),
+                ...Array.from({ length: 16 }, (_, i) => `assets/images/puzzles/wall/wall${i}.png`)
+            ];
+
+            this.totalAssets = imageList.length + 1 + 1; // images + audio buffer + fonts
+            this.loadedAssets = 0;
+
+            const imagePromises = imageList.map(src => new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = async () => {
+                    try { if (img.decode) await img.decode(); } catch (_) {}
+                    this.cache.set(src, img);
+                    this.loadedAssets++;
+                    this.updateLoadingProgress();
+                    resolve();
+                };
+                img.onerror = reject;
+                img.src = src;
+            }));
+
+            const audioBufferPromise = fetch('assets/audio/MUSIC.mp3', { cache: 'force-cache' })
+                .then(res => { if (!res.ok) throw new Error('Audio fetch failed'); return res.arrayBuffer(); })
+                .then(buf => { this.cache.set('__audioArrayBuffer__', buf); this.loadedAssets++; this.updateLoadingProgress(); return buf; });
+
+            const fontPromise = (document.fonts && document.fonts.ready)
+                ? document.fonts.ready.then(() => { this.loadedAssets++; this.updateLoadingProgress(); })
+                : Promise.resolve().then(() => { this.loadedAssets++; this.updateLoadingProgress(); });
+
+            const [audioArrayBuffer] = await Promise.all([audioBufferPromise, fontPromise, ...imagePromises]);
+            window.__imageCache = this.cache;
+            window.__audioArrayBuffer = audioArrayBuffer;
+
+            this.loadingScreen.classList.add('fade-out');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            this.loadingScreen.style.display = 'none';
+            return true;
+        } catch (error) {
+            console.error('Asset loading failed:', error);
+            this.progressText.textContent = 'Loading failed. Please refresh.';
+            return false;
         }
     }
 
@@ -2232,9 +2314,9 @@ async function initialize() {
     modal.style.visibility = 'hidden';
     container.style.visibility = 'hidden';
 
-    // アセットのロード
+    // アセットのロード（Safari 対応版）
     const loader = new AssetLoader();
-    const loadSuccess = await loader.loadAll();
+    const loadSuccess = await loader.loadAll2();
 
     if (!loadSuccess) {
         return; // ロード失敗時は初期化中止
@@ -2244,17 +2326,41 @@ async function initialize() {
     modal.style.visibility = 'visible';
     
     // ゲーム開始を遅延させる
-    const startGame = () => {
+    const startGame = async () => {
         modal.style.display = 'none';
+        // 最初にステージ画像が確実に用意されてから表示する（ほんの一瞬）
+        try {
+            const cache = window.__imageCache;
+            const firstImage = (typeof PUZZLE_IMAGES !== 'undefined') ? PUZZLE_IMAGES[currentStage] : null;
+            const cachedImg = firstImage && cache ? cache.get(firstImage) : null;
+            if (cachedImg && typeof cachedImg.decode === 'function') {
+                await cachedImg.decode();
+            }
+        } catch (_) {}
         container.style.visibility = 'visible';
-        // ユーザー操作のタイミングでデコードだけ先に済ませる（シームレス再生の準備）
+        // ユーザー操作のタイミングで AudioContext を初期化 + 事前フェッチ済みバッファを提供
         if (audio && typeof audio._ensureContext === 'function') {
-            audio._ensureContext().then(() => audio._load()).catch(() => {});
+            try {
+                await audio._ensureContext();
+                if (window.__audioArrayBuffer) {
+                    audio.provideArrayBuffer(window.__audioArrayBuffer);
+                }
+                await audio._load();
+            } catch (_) {}
         }
         updateStageContent();
         updateProgress();
         requestAnimationFrame(update);
         debugTools.initialize();
+
+        // レイアウトが安定してからもう一度描画（初回のズレ対策）
+        const nextFrame = () => new Promise(r => requestAnimationFrame(() => r()));
+        try {
+            await nextFrame();
+            await nextFrame();
+            updateStageContent();
+            updateProblemElements();
+        } catch (_) {}
     };
 
     // OKボタンのクリックイベント

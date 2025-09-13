@@ -4,6 +4,10 @@
     box-sizing: border-box;
 }
 
+html, body {
+    background-color: #000; /* 白フラッシュ防止（初期背景を黒に固定） */
+}
+
 body {
     font-family: Arial, sans-serif;
     display: flex;
@@ -718,25 +722,27 @@ body.stage-16 .reset-container.show {
     inset: 0;
     border-radius: 50%;
     background: url('assets/images/load/load.png') center / contain no-repeat;
-    /* Start at 12 o'clock and grow counter-clockwise */
+    /* Reveal counter-clockwise from 12 o'clock */
     -webkit-mask: conic-gradient(
-        from -90deg,
-        transparent 0turn,
-        transparent calc(1turn - var(--a, 0turn)),
-        #000 calc(1turn - var(--a, 0turn)),
-        #000 1turn
+        from calc(-90deg - var(--a, 0deg)),
+        #000 var(--a, 0deg),
+        transparent 0
     );
             mask: conic-gradient(
-        from -90deg,
-        transparent 0turn,
-        transparent calc(1turn - var(--a, 0turn)),
-        #000 calc(1turn - var(--a, 0turn)),
-        #000 1turn
+        from calc(-90deg - var(--a, 0deg)),
+        #000 var(--a, 0deg),
+        transparent 0
     );
 }
 
-/* removed outer rim for clean edge */
-.loading-image::after { content: none; }
+.loading-image::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.18) inset,
+                0 8px 24px rgba(0,0,0,0.35) inset;
+}
 
 .loading-progress {
     position: absolute;
