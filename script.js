@@ -1,4 +1,4 @@
-const playButton = document.getElementById('playButton');
+﻿const playButton = document.getElementById('playButton');
 const playIcon = document.getElementById('playIcon');
 const prevButton = document.getElementById('prevButton');
 const nextButton = document.getElementById('nextButton');
@@ -27,6 +27,7 @@ const HIRAGANA = [
     'ら', 'り', 'る', 'れ', 'ろ',
     'わ', 'を', 'ん'
 ];
+
 
 
 
