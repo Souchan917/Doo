@@ -309,6 +309,11 @@ body.stage-23 { background-color: #5D4037; }
     transform: translate(-50%, -50%);
 }
 
+/* Stage7 既存のドットギミックを非表示（新しい縦線ギミックに置換） */
+/* #gimmick-7-0 {
+    display: none !important;
+} */
+
 .dynamic-text-char {
     font-family: 'M PLUS Rounded 1c', sans-serif;
     text-align: center;

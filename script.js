@@ -9,7 +9,7 @@ const titleArea = document.querySelector('.title-area h2');
 //====================================================
 // 定数定義
 //====================================================
-const BPM = 175;
+const BPM = 170;
 const BEATS_PER_SECOND = BPM / 60;
 const BEAT_INTERVAL = 60 / BPM; // 1拍の長さ（秒）
 const TOTAL_DURATION = 283; // 4:42 in seconds
@@ -45,7 +45,8 @@ const GIMMICK_TYPES = {
     RHYTHM_DOTS: 'rhythm_dots',
     NUMBER_TEXT: 'number_text',
     CLICK_COUNTER: 'click_counter',  // 新しく追加
-    LYRICS: 'lyrics'
+    LYRICS: 'lyrics',
+    VERTICAL_LINES: 'vertical_lines' // 濁点っぽい縦線2本描画
 };
 // クリック回数を追跡する変数を追加
 const clickCounts = {
@@ -87,6 +88,21 @@ const STAGE_CONFIGS = {
                         { dotIndex: 1, defaultChar: 'ワ', selectedChar: 'ラ' },
                         { dotIndex: 2, defaultChar: 'イ', selectedChar: 'ッ' },
                         { dotIndex: 3, defaultChar: 'ト', selectedChar: 'ク' }
+                    ]
+                }
+            },
+            {
+                // 追加: ステージ7の縦線ギミック（4拍・押した拍のみ表示）
+                type: GIMMICK_TYPES.SEGMENT,
+                settings: {
+                    x: 50,
+                    y: 50,
+                    size: 400,
+                    beats: [
+                        { beat: 1, lines: [ { x: 42, y: 35, length: 28, width: 6 }, { x: 48, y: 35, length: 28, width: 6 } ] },
+                        { beat: 2, lines: [ { x: 55, y: 45, length: 32, width: 6 }, { x: 61, y: 45, length: 32, width: 6 } ] },
+                        { beat: 3, lines: [ { x: 35, y: 65, length: 26, width: 6 }, { x: 41, y: 65, length: 26, width: 6 } ] },
+                        { beat: 4, lines: [ { x: 70, y: 70, length: 34, width: 6 }, { x: 76, y: 70, length: 34, width: 6 } ] }
                     ]
                 }
             }
@@ -220,23 +236,38 @@ const STAGE_CONFIGS = {
     },
     7: {
         gimmicks: [
-            {
-                type: GIMMICK_TYPES.RHYTHM_DOTS,
-                settings: {
-                    x: 50,      // 全体の中心X座標
-                    y: 50,      // 全体の中心Y座標
-                    size: 400,  // 全体のサイズ
-                    dots: [
-                        { x: 40, y: 10, size: 30, beat: 2 },  // 左上
-                        { x: 60, y: 10, size: 30, beat: 7 },  // 右上
-                        { x: 90, y: 40, size: 30, beat: 3 },  // 左から2番目
-                        { x: 90, y: 60, size: 30, beat: 4 },  // 右から2番目
-                        { x: 60, y: 90, size: 30, beat: 8 },  // 左から3番目
-                        { x: 40, y: 90, size: 30, beat: 1 },
-                        { x: 10, y: 60, size: 30, beat: 5 },   // 右から3番目
-                        { x: 10, y: 40, size: 30, beat: 6 }  // 左下
-                          // 右下
+            // {
+            //     type: GIMMICK_TYPES.RHYTHM_DOTS,
+            //     settings: {
+            //         x: 50,      // 全体の中心X座標
+            //         y: 50,      // 全体の中心Y座標
+            //         size: 400,  // 全体のサイズ
+            //         dots: [
+            //             { x: 40, y: 10, size: 30, beat: 2 },  // 左上
+            //             { x: 60, y: 10, size: 30, beat: 7 },  // 右上
+            //             { x: 90, y: 40, size: 30, beat: 3 },  // 左から2番目
+            //             { x: 90, y: 60, size: 30, beat: 4 },  // 右から2番目
+            //             { x: 60, y: 90, size: 30, beat: 8 },  // 左から3番目
+            //             { x: 40, y: 90, size: 30, beat: 1 },
+            //             { x: 10, y: 60, size: 30, beat: 5 },   // 右から3番目
+            //             { x: 10, y: 40, size: 30, beat: 6 }  // 左下
+            //               // 右下
                         
+            //         ]
+            //     }
+            // },
+            {
+                // ステージ7: ボタンを押した拍のみ縦線2本を描画
+                type: GIMMICK_TYPES.VERTICAL_LINES,
+                settings: {
+                    x: 50,
+                    y: 50,
+                    size: 400,
+                    beats: [
+                        { beat: 1, lines: [ { x: 20, y: 30, length: 30, width: 6 }, { x: 25, y: 30, length: 30, width: 6 } ] },
+                        { beat: 2, lines: [ { x: 40, y: 30, length: 30, width: 6 }, { x: 45, y: 30, length: 30, width: 6 } ] },
+                        { beat: 3, lines: [ { x: 60, y: 30, length: 30, width: 6 }, { x: 65, y: 30, length: 30, width: 6 } ] },
+                        { beat: 4, lines: [ { x: 80, y: 30, length: 30, width: 6 }, { x: 85, y: 30, length: 30, width: 6 } ] }
                     ]
                 }
             }
@@ -699,7 +730,7 @@ const stageSettings = {
     4: { dots: 8 },
     5: { dots: 8 },
     6: { dots: 8 },
-    7: { dots: 8 },
+    7: { dots: 4 },
     8: { dots: 8 },
     9: { dots: 16 },
     10: { dots: 8 },
@@ -719,7 +750,7 @@ const correctPatterns = {
     4: [1, 4, 5, 7],
     5: [5, 6, 7, 8],
     6: [1, 2, 5, 6, 7],
-    7: [2, 4, 5, 8],
+    7: [1, 3],
     8: [2],
     9: [1, 2, 3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16],
     10: [1, 2, 4, 7],
@@ -1023,6 +1054,27 @@ class GimmickManager {
                 container.appendChild(dot);
             });
             
+            element.appendChild(container);
+        }
+
+        if (config.type === GIMMICK_TYPES.VERTICAL_LINES) {
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.width = '100%';
+            container.style.height = '100%';
+
+            const beats = (config.settings && config.settings.beats) || [];
+            beats.forEach(beatCfg => {
+                (beatCfg.lines || []).forEach((_, lineIdx) => {
+                    const line = document.createElement('div');
+                    line.className = 'dakuten-line';
+                    line.style.position = 'absolute';
+                    line.dataset.beat = String(beatCfg.beat);
+                    line.dataset.which = String(lineIdx);
+                    container.appendChild(line);
+                });
+            });
+
             element.appendChild(container);
         }
 
@@ -1341,6 +1393,45 @@ _updateNumberTextGimmick(element, config, containerSize) {
         });
     }
 
+    _updateVerticalLinesGimmick(element, config, containerSize) {
+        const scaleFactor = containerSize / 400;
+        const currentBeat = Math.floor(currentBeatProgress) + 1;
+
+        const container = element.querySelector('div');
+        if (!container) return;
+        container.style.position = 'absolute';
+        container.style.width = '100%';
+        container.style.height = '100%';
+        container.style.top = '0';
+        container.style.left = '0';
+
+        const beats = (config.settings && config.settings.beats) || [];
+        beats.forEach(beatCfg => {
+            (beatCfg.lines || []).forEach((lineCfg, lineIdx) => {
+                const sel = `.dakuten-line[data-beat='${beatCfg.beat}'][data-which='${lineIdx}']`;
+                const lineEl = element.querySelector(sel);
+                if (!lineEl) return;
+
+                const height = (lineCfg.length || 24) * scaleFactor;
+                const width = (lineCfg.width || 6) * scaleFactor;
+                lineEl.style.width = `${width}px`;
+                lineEl.style.height = `${height}px`;
+                lineEl.style.left = `${lineCfg.x}%`;
+                lineEl.style.top = `${lineCfg.y}%`;
+                lineEl.style.transform = 'translate(-50%, -50%)';
+                lineEl.style.backgroundColor = '#111';
+                lineEl.style.borderRadius = `${Math.max(1, width/2)}px`;
+                lineEl.style.opacity = selectedBeats.has(beatCfg.beat) ? '1' : '0';
+                lineEl.style.transition = 'opacity 0.1s ease, transform 0.1s ease';
+
+                // 現在拍のときに少し強調したい場合は以下のコメントアウトを有効化
+                // if (beatCfg.beat === currentBeat) {
+                //     lineEl.style.transform = 'translate(-50%, -50%) scale(1.05)';
+                // }
+            });
+        });
+    }
+
     updateGimmick(stageId) {
         const config = STAGE_CONFIGS[stageId];
         if (!config) return;
@@ -1404,6 +1495,10 @@ _updateNumberTextGimmick(element, config, containerSize) {
 
                 case GIMMICK_TYPES.RHYTHM_DOTS:
                     this._updateRhythmDotsGimmick(element, gimmickConfig, containerSize);
+                    break;
+
+                case GIMMICK_TYPES.VERTICAL_LINES:
+                    this._updateVerticalLinesGimmick(element, gimmickConfig, containerSize);
                     break;
 
                 case GIMMICK_TYPES.SEGMENT:
@@ -2019,7 +2114,7 @@ class AssetLoader {
                 img.src = src;
             }));
 
-            const audioBufferPromise = fetch('assets/audio/MUSIC5.mp3', { cache: 'force-cache' })
+            const audioBufferPromise = fetch('assets/audio/MUSIC2.mp3', { cache: 'force-cache' })
                 .then(res => { if (!res.ok) throw new Error('Audio fetch failed'); return res.arrayBuffer(); })
                 .then(buf => { this.cache.set('__audioArrayBuffer__', buf); this.loadedAssets++; this.updateLoadingProgress(); return buf; });
 
