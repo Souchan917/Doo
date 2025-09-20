@@ -14,6 +14,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body class="stage-0">
+    <!-- 背景オーディオビジュアライザー -->
+    <canvas id="bgVisualizer" aria-hidden="true"></canvas>
     <div id="startModal" class="modal-overlay">
         <div class="modal-content">
             <h2 class="modal-title">注意事項</h2>
@@ -98,11 +100,11 @@
             </button>
         </div>
         
-        <div id="resetContainer" class="reset-container">
+        <!-- <div id="resetContainer" class="reset-container">
             <button onclick="location.reload()" class="reset-button">
                 リロードして初めからプレイする
             </button>
-        </div>
+        </div> -->
 
         <div class="answer-area">
             <p>---</p>

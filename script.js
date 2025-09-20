@@ -9,7 +9,7 @@ const titleArea = document.querySelector('.title-area h2');
 //====================================================
 // 定数定義
 //====================================================
-const BPM = 195;
+const BPM = 170;
 const BEATS_PER_SECOND = BPM / 60;
 const BEAT_INTERVAL = 60 / BPM; // 1拍の長さ（秒）
 const TOTAL_DURATION = 283; // 4:42 in seconds
@@ -616,7 +616,7 @@ const STAGE_ANSWERS = {
     13: "七",
     14: "てんかい",
     15: "？？",
-    16: "",
+    16: "クリア",
     17: "THANK YOU FOR PLAYING"
 };
 // Twitter共有用の関数を更新
@@ -740,7 +740,7 @@ const stageSettings = {
     13: { dots: 16 },
     14: { dots: 8 },
     15: { dots: 8 },
-    16: { dots: 4 },
+    16: { dots: 16 },
     17: { dots: 8 }
 };
 const correctPatterns = {
@@ -772,6 +772,7 @@ class SeamlessLoopPlayer {
         this.url = url;
         this.context = null;
         this.gainNode = null;
+        this.analyser = null; // for visualizer
         this.buffer = null;
         this.source = null;
         this._volume = 0.7;
@@ -792,7 +793,17 @@ class SeamlessLoopPlayer {
             this.context = new AC();
             this.gainNode = this.context.createGain();
             this.gainNode.gain.value = this._volume;
+            // Create analyser for visualization (parallel connection)
+            this.analyser = this.context.createAnalyser();
+            this.analyser.fftSize = 1024;           // 低レイテンシ寄り
+            this.analyser.smoothingTimeConstant = 0.72; // 追従性アップ（遅延減）
+            try {
+                this.analyser.minDecibels = -100;
+                this.analyser.maxDecibels = -10;
+            } catch (_) {}
+            // Connect gain to both destination and analyser (no audible change)
             this.gainNode.connect(this.context.destination);
+            this.gainNode.connect(this.analyser);
         }
         if (this.context.state === 'suspended') {
             try { await this.context.resume(); } catch (_) {}
@@ -977,6 +988,285 @@ let isHolding = false;
 let holdStartBeat = -1;
 const audio = new SeamlessLoopPlayer('assets/audio/MUSIC.mp3');
 audio.volume = 0.7;
+
+//====================================================
+// 背景オーディオビジュアライザー
+//====================================================
+class BackgroundVisualizer {
+    constructor(player, canvas) {
+        this.player = player;
+        this.canvas = canvas || document.getElementById('bgVisualizer');
+        this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
+        this.running = false;
+        this.rafId = null;
+        this.freqData = null;
+        this.display = null; // smoothed heights [0..1]
+        this.barCountTarget = 10; // 約50本
+        this.barCount = this.barCountTarget;
+        this.devicePixelRatio = Math.max(1, window.devicePixelRatio || 1);
+        this.color = '#fff';
+        // 描画する縦方向の範囲（上端=0, 下端=1）
+        this.topRatio = 0.00;    // 上から5%
+        this.bottomRatio = 1.00; // 下から5%
+        // 解析用の周波数レンジ（0=低域,1=高域）
+        this.range = [0, 1];
+        // 最低高さ: 再生中/停止中（停止中は1/5）
+        this.minPlaying = 0.05;
+        this.minIdle = 0.012;
+        // 全体高さスケール（1.0で等倍）
+        this.heightScale = 1.0;
+        // 各帯域の独立スケーリング用パラメータ
+        this.peaks = null; this.peakDecay = 0.993; this.gainGamma = 1.6; this.topCurve = 1.4; this.fall = 0.9; this.attack = 0.1; this.direction = 'lowLeft';
+        // Ensure analyser is configured for minimal latency if already available
+        this._analyserConfigured = false;
+        try {
+            if (this.player && this.player.analyser) {
+                this.player.analyser.fftSize = 512;
+                this.player.analyser.smoothingTimeConstant = 0.0;
+                this._analyserConfigured = true;
+            }
+        } catch (_) {}
+        this._resizeHandler = () => this._resize();
+        if (this.canvas) {
+            this._resize();
+            window.addEventListener('resize', this._resizeHandler);
+        }
+    }
+
+    destroy() {
+        this.stop();
+        window.removeEventListener('resize', this._resizeHandler);
+    }
+
+    _resize() {
+        if (!this.canvas) return;
+        const dpr = this.devicePixelRatio;
+        const rect = this.canvas.getBoundingClientRect();
+        // Match internal size to CSS size for crisp rendering
+        const w = Math.max(1, Math.floor(rect.width * dpr));
+        const h = Math.max(1, Math.floor(rect.height * dpr));
+        if (this.canvas.width !== w || this.canvas.height !== h) {
+            this.canvas.width = w;
+            this.canvas.height = h;
+        }
+        // 固定本数
+        this.barCount = this.barCountTarget;
+        this.display = new Float32Array(this.barCount);
+        this.peaks = new Float32Array(this.barCount);
+        for (let i = 0; i < this.barCount; i++) this.peaks[i] = 0.25;
+    }
+
+    setRange(startRatio, endRatio) {
+        const s = Math.max(0, Math.min(1, startRatio));
+        const e = Math.max(0, Math.min(1, endRatio));
+        this.range = [Math.min(s, e), Math.max(s, e)];
+    }
+
+    // 縦方向の描画範囲を設定（0=上, 1=下）。例: setVerticalBounds(0.1, 0.9)
+    setVerticalBounds(topRatio, bottomRatio) {
+        const t = Math.max(0, Math.min(1, topRatio));
+        const b = Math.max(0, Math.min(1, bottomRatio));
+        this.topRatio = Math.min(t, b);
+        this.bottomRatio = Math.max(t, b);
+    }
+
+    // CSSピクセル指定で上下を設定（キャンバス上部からのpx）
+    setVerticalPixels(topPx, bottomPx) {
+        if (!this.canvas) return;
+        const rect = this.canvas.getBoundingClientRect();
+        const t = (typeof topPx === 'number') ? topPx / Math.max(1, rect.height) : 0;
+        const b = (typeof bottomPx === 'number') ? bottomPx / Math.max(1, rect.height) : 1;
+        this.setVerticalBounds(t, b);
+    }
+
+    // 全体高さスケール（0〜2程度）
+    setHeightScale(scale) {
+        const s = Number(scale);
+        if (!isNaN(s) && isFinite(s)) {
+            this.heightScale = Math.max(0, s);
+        }
+    }
+
+    updateColorForStage(stage) {
+        if (stage === 16) {
+            this.color = '#ffffff';
+            return;
+        }
+        try {
+            const bg = getComputedStyle(document.body).backgroundColor || 'rgb(0,0,0)';
+            const rgb = bg.match(/\d+/g).map(Number);
+            const [r, g, b] = rgb.length >= 3 ? rgb : [0, 0, 0];
+            const { h, s, l } = BackgroundVisualizer._rgbToHsl(r, g, b);
+            // 濃い色: 彩度を高めて明度を少し下げる（視認性も確保）
+            const s2 = Math.min(1, s * 0.9 + 0.25);
+            const l2 = Math.min(0.55, Math.max(0.28, l * 0.65 + 0.06));
+            const { r: rr, g: gg, b: bb } = BackgroundVisualizer._hslToRgb(h, s2, l2);
+            this.color = `rgb(${Math.round(rr)}, ${Math.round(gg)}, ${Math.round(bb)})`;
+        } catch (_) {
+            this.color = '#ffffff';
+        }
+    }
+
+    static _rgbToHsl(r, g, b) {
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+        if (max === min) { h = 0; s = 0; }
+        else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                default: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        return { h, s, l };
+    }
+
+    static _hue2rgb(p, q, t) {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+    }
+
+    static _hslToRgb(h, s, l) {
+        let r, g, b;
+        if (s === 0) { r = g = b = l; }
+        else {
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = BackgroundVisualizer._hue2rgb(p, q, h + 1/3);
+            g = BackgroundVisualizer._hue2rgb(p, q, h);
+            b = BackgroundVisualizer._hue2rgb(p, q, h - 1/3);
+        }
+        return { r: r * 255, g: g * 255, b: b * 255 };
+    }
+
+    start() {
+        if (!this.ctx || !this.player) return;
+        if (this.running) return;
+        this.running = true;
+        const loop = () => {
+            if (!this.running) return;
+            this._draw();
+            this.rafId = requestAnimationFrame(loop);
+        };
+        loop();
+    }
+
+    stop() {
+        this.running = false;
+        if (this.rafId) cancelAnimationFrame(this.rafId);
+        this.rafId = null;
+    }
+
+    _ensureFreqBuffer() {
+        const analyser = this.player && this.player.analyser;
+        if (analyser && !this._analyserConfigured) {
+            try {
+                analyser.fftSize = 512;
+                analyser.smoothingTimeConstant = 0.0;
+            } catch (_) {}
+            this._analyserConfigured = true;
+        }
+        if (analyser && (!this.freqData || this.freqData.length !== analyser.frequencyBinCount)) {
+            this.freqData = new Uint8Array(analyser.frequencyBinCount);
+        }
+        return analyser;
+    }
+
+    _draw() {
+        const ctx = this.ctx;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        if (!w || !h) return;
+
+        // Clear background fully transparent, let page bg show through
+        ctx.clearRect(0, 0, w, h);
+
+        const analyser = this._ensureFreqBuffer();
+        if (!analyser) return;
+
+        analyser.getByteFrequencyData(this.freqData);
+        const binCount = this.freqData.length;
+        // 選択レンジにトリム
+        const startBin = Math.floor(binCount * this.range[0]);
+        const endBin = Math.max(startBin + 1, Math.floor(binCount * this.range[1]));
+        const useBins = endBin - startBin;
+        // Aggregate bins -> bars (independent per band)
+        const bars = this.barCount;
+        const step = useBins / bars;
+        if (!this.peaks || this.peaks.length !== bars) {
+            this.peaks = new Float32Array(bars);
+            for (let i = 0; i < bars; i++) this.peaks[i] = 0.25;
+            if (!this.display || this.display.length !== bars)
+                this.display = new Float32Array(bars);
+        }
+        const gamma = this.gainGamma || 1.6;
+        const topCurve = this.topCurve || 1.4;
+        const decay = this.peakDecay || 0.993;
+        const fall = this.fall || 0.8;
+        for (let i = 0; i < bars; i++) {
+            const idx = (this.direction === 'lowLeft') ? i : (bars - 1 - i);
+            const start = startBin + Math.floor(idx * step);
+            const end = startBin + Math.floor((idx + 1) * step);
+            let sum = 0, count = 0;
+            for (let b = start; b < end; b++) {
+                // Slight high-frequency weighting for perceptual balance
+                const wHigh = Math.pow((b + 1) / binCount, 0.6) * 0.7 + 0.3;
+                sum += (this.freqData[b] / 255) * wHigh;
+                count++;
+            }
+            const raw = count ? (sum / count) : 0;
+            // 1) compress highs so bars are harder to reach top
+            const comp = Math.pow(raw, gamma);
+            // 2) per-band peak tracking for independent normalization
+            const prevPeak = this.peaks[i] || 0.25;
+            const newPeak = Math.max(comp, prevPeak * decay);
+            this.peaks[i] = newPeak;
+            let n = newPeak > 1e-4 ? (comp / newPeak) : comp;
+            // 3) additional top curve to further prevent overshoot
+            n = Math.pow(n, topCurve);
+            // 4) per-band attack/fall smoothing + floor
+            const minBase = (this.player && this.player._isPlaying) ? this.minPlaying : this.minIdle;
+            n = Math.max(minBase, Math.min(0.98, n));
+            const prev = this.display[i] || 0;
+            const up = (this.attack || 0.12);
+            let next;
+            if (n >= prev) {
+                // 上りは重く（遅く）追従させる
+                next = prev + up * (n - prev);
+            } else {
+                // 下りはフォール（指数的）で素早く落とす
+                next = prev * fall + (1 - fall) * n;
+            }
+            this.display[i] = Math.max(minBase, Math.min(0.995, next));
+        }
+        // Draw bars within vertical bounds (topRatio..bottomRatio)
+        ctx.fillStyle = this.color;
+        const topY = Math.floor(h * Math.max(0, Math.min(1, this.topRatio)));
+        const bottomY = Math.floor(h * Math.max(0, Math.min(1, this.bottomRatio)));
+        const areaH = Math.max(1, bottomY - topY);
+        const barW = w / bars;
+        for (let i = 0; i < bars; i++) {
+            const val = this.display[i];
+            const bh = Math.max(1, Math.floor(val * areaH * (this.heightScale || 1)));
+            const x = Math.floor(i * barW);
+            const y = bottomY - bh; // baseline = bottomY
+            // ensure we cover exactly without gaps between x and next bar
+            const nextX = Math.floor((i + 1) * barW);
+            const width = Math.max(1, nextX - x);
+            ctx.fillRect(x, y, width, Math.min(bh, areaH));
+        }
+    }
+}
+
+let bgVisualizer = null;
 
 //====================================================
 // ギミック管理クラス
@@ -1725,6 +2015,9 @@ function updateStageContent() {
 
 function updateBackgroundColor() {
     document.body.className = `stage-${currentStage}`;
+    try {
+        if (window.bgVisualizer) window.bgVisualizer.updateColorForStage(currentStage);
+    } catch (_) {}
 }
 
 function updateAnswer() {
@@ -2115,7 +2408,7 @@ class AssetLoader {
                 img.src = src;
             }));
 
-            const audioBufferPromise = fetch('assets/audio/MUSIC4.mp3', { cache: 'force-cache' })
+            const audioBufferPromise = fetch('assets/audio/MUSIC2.mp3', { cache: 'force-cache' })
                 .then(res => { if (!res.ok) throw new Error('Audio fetch failed'); return res.arrayBuffer(); })
                 .then(buf => { this.cache.set('__audioArrayBuffer__', buf); this.loadedAssets++; this.updateLoadingProgress(); return buf; });
 
@@ -2452,6 +2745,18 @@ async function initialize() {
                 await audio._load();
             } catch (_) {}
         }
+        // Start background visualizer after audio is ready
+        try {
+            const canvas = document.getElementById('bgVisualizer');
+            if (canvas) {
+                window.bgVisualizer = bgVisualizer = new BackgroundVisualizer(audio, canvas);
+                // 右側1/4を省く（必要に応じて調整可）
+                bgVisualizer.setRange(0, 0.69);
+                bgVisualizer.direction = 'lowLeft';
+                bgVisualizer.updateColorForStage(currentStage);
+                bgVisualizer.start();
+            }
+        } catch (_) {}
         updateStageContent();
         updateProgress();
         requestAnimationFrame(update);

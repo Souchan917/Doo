@@ -790,3 +790,24 @@ body.stage-16 .reset-container.show {
     opacity: 0;
     transition: opacity 0.5s ease;
 }
+
+/* ==========================
+   背景オーディオビジュアライザー
+   ========================== */
+#bgVisualizer {
+    position: fixed;
+    left: 0;
+    bottom: 0;        /* 画面の一番下にベースラインを合わせる */
+    top: auto;
+    transform: none;  /* 中央寄せをやめる */
+    width: 100vw;
+    height: 100vh;    /* 最大高を上げる（画面全高） */
+    z-index: 0;       /* コンテンツの後ろへ */
+    pointer-events: none; /* クリックを透過 */
+}
+
+/* コンテンツはビジュアライザーの上に */
+.container {
+    position: relative;
+    z-index: 1;
+}
