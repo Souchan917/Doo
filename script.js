@@ -49,7 +49,7 @@ const TOTAL_DURATION = 283; // 4:42 in seconds
 
 // 入力のビート判定を前寄りに補正（描画遅延やイベント遅延の吸収用）
 // 例: 30ms 前倒しで、境界付近で「前の拍」に入ってしまう誤判定を低減
-const INPUT_BEAT_BIAS_MS = 30;
+const INPUT_BEAT_BIAS_MS = 0;
 
 function getInputBeatNumber() {
     const dotCount = stageSettings[currentStage]?.dots || 4;
