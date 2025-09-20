@@ -2130,42 +2130,72 @@ document.addEventListener('contextmenu', (e) => {
 // Web Audio のシームレスループを使うため、ended での手動ループは不要
 
 // LEFT: NEXT1 behavior (repurposed from previous)
-if (next1Button) {
-    next1Button.addEventListener('click', () => {
-        // Count as independent next1 and overall next
-        clickCounts.next1++;
-        clickCounts.next++;
-        if (currentStage === 17) return;
-        if (clearedStages.has(currentStage)) {
-            currentStage++;
-            updateStageContent();
-            onNext1Effect();
-            return;
-        }
-        const currentBeat = Math.floor(currentBeatProgress) + 1;
-        selectedBeats.add(currentBeat);
-        selectedBeatsLeft.add(currentBeat);
+function doNext1Action() {
+    // Count as independent next1 and overall next
+    clickCounts.next1++;
+    clickCounts.next++;
+    if (currentStage === 17) return;
+    if (clearedStages.has(currentStage)) {
+        currentStage++;
+        updateStageContent();
         onNext1Effect();
-    });
+        return;
+    }
+    const currentBeat = Math.floor(currentBeatProgress) + 1;
+    selectedBeats.add(currentBeat);
+    selectedBeatsLeft.add(currentBeat);
+    onNext1Effect();
 }
 
-nextButton.addEventListener('click', () => {
+function doNext2Action() {
     clickCounts.next2++;
     clickCounts.next++;
     if (currentStage === 17) return;
-
     if (clearedStages.has(currentStage)) {
         currentStage++;
         updateStageContent();
         onNext2Effect();
         return;
     }
-
     const currentBeat = Math.floor(currentBeatProgress) + 1;
     selectedBeats.add(currentBeat);
     selectedBeatsRight.add(currentBeat);
     onNext2Effect();
-});
+}
+
+function bindMultiTouchPress(btn, action) {
+    if (!btn) return;
+    let lastTouchTs = 0;
+    const animate = () => {
+        try {
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => { btn.style.transform = 'scale(1)'; }, 100);
+        } catch (_) {}
+    };
+    const call = () => { action(); animate(); };
+    // Pointer Events (iOS13+/Android/desktop)
+    btn.addEventListener('pointerdown', (e) => {
+        if (e && e.pointerType === 'touch') {
+            e.preventDefault();
+            lastTouchTs = Date.now();
+            call();
+        }
+    });
+    // Touch fallback (older iOS Safari)
+    btn.addEventListener('touchstart', (e) => {
+        try { e.preventDefault(); } catch (_) {}
+        lastTouchTs = Date.now();
+        call();
+    }, { passive: false });
+    // Click as fallback (mouse/keyboard/programmatic)
+    btn.addEventListener('click', (e) => {
+        if (Date.now() - lastTouchTs < 300) return; // suppress duplicate click after touch
+        call();
+    });
+}
+
+bindMultiTouchPress(next1Button, doNext1Action);
+bindMultiTouchPress(nextButton, doNext2Action);
 
 // プログレスバーのドラッグ制御
 // プログレスバー: つまみ以外でも即ジャンプ＆ドラッグ開始
