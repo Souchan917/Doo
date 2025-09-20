@@ -1,11 +1,17 @@
 ﻿const playButton = document.getElementById('playButton');
 const playIcon = document.getElementById('playIcon');
-const prevButton = document.getElementById('prevButton');
-const nextButton = document.getElementById('nextButton');
+// Controls: repurpose previous button as NEXT1, keep existing NEXT as NEXT2
+const next1Button = document.getElementById('next1Button');
+const nextButton = document.getElementById('nextButton'); // NEXT2 (existing)
 const progressBarElement = document.getElementById('progressBar');
 const currentTimeDisplay = document.getElementById('currentTime');
 const problemArea = document.getElementById('problemArea');
 const titleArea = document.querySelector('.title-area h2');
+
+// Hooks for independent effects per NEXT button
+// Customize these later for Effect A/B
+function onNext1Effect() {}
+function onNext2Effect() {}
 //====================================================
 // 定数定義
 //====================================================
@@ -52,10 +58,15 @@ const GIMMICK_TYPES = {
 // クリック回数を追跡する変数を追加
 const clickCounts = {
     play: 0,
+    // legacy fields kept for compatibility
     prev: 0,
     next: 0,
     progress: 0,
+    // new independent counters
+    next1: 0,
+    next2: 0,
     getTotal() {
+        // count both next1 and next2 toward total via legacy next as well
         return this.play + this.prev + this.next + this.progress;
     }
 };
@@ -982,6 +993,9 @@ let currentStage = 0;
 let clearedStages = new Set();
 let currentBeatProgress = 0;
 let selectedBeats = new Set();
+// Track which NEXT pressed per beat for color (left=NEXT1, right=NEXT2)
+let selectedBeatsLeft = new Set();
+let selectedBeatsRight = new Set();
 let lastBeat = -1;
 let isLoopComplete = false;
 let isHolding = false;
@@ -1016,12 +1030,12 @@ class BackgroundVisualizer {
         // 全体高さスケール（1.0で等倍）
         this.heightScale = 1.0;
         // 各帯域の独立スケーリング用パラメータ
-        this.peaks = null; this.peakDecay = 0.993; this.gainGamma = 1.6; this.topCurve = 1.4; this.fall = 0.8; this.attack = 0.2; this.direction = 'lowLeft';
+        this.peaks = null; this.peakDecay = 0.993; this.gainGamma = 1.6; this.topCurve = 1.4; this.fall = 0.90; this.attack = 0.55; this.direction = 'lowLeft';
         // Ensure analyser is configured for minimal latency if already available
         this._analyserConfigured = false;
         try {
             if (this.player && this.player.analyser) {
-                this.player.analyser.fftSize = 212;
+                this.player.analyser.fftSize = 256;
                 this.player.analyser.smoothingTimeConstant = 0.0;
                 this._analyserConfigured = true;
             }
@@ -1668,7 +1682,7 @@ _updateNumberTextGimmick(element, config, containerSize) {
             dot.style.transform = 'translate(-50%, -50%)';
     
             // 見た目の設定
-            dot.style.backgroundColor = selectedBeats.has(beatNumber) ? '#000000' : '#fff';
+            const lp = selectedBeatsLeft.has(beatNumber); const rp = selectedBeatsRight.has(beatNumber); let bg = '#fff'; if (lp && rp) bg = '#800080'; else if (lp) bg = '#ff0000'; else if (rp) bg = '#007bff'; dot.style.backgroundColor = bg;
             dot.style.borderRadius = '50%';
             dot.style.opacity = '0.8';
             dot.style.transition = 'all 0.1s ease';
@@ -1891,6 +1905,8 @@ function updateRhythmDots() {
     if (currentBeat < oldBeat) {
         checkRhythmPattern();
         selectedBeats.clear();
+        selectedBeatsLeft.clear();
+        selectedBeatsRight.clear();
         isLoopComplete = true;
     } else {
         isLoopComplete = false;
@@ -1909,9 +1925,18 @@ function updateRhythmDots() {
         // クリア済みステージの場合、正解のドットを常に selected 状態に
         if (isCorrectBeat) {
             dot.classList.add('selected');
+            dot.style.backgroundColor = '';
         } else {
             dot.classList.toggle('active', isCurrentBeat);
             dot.classList.toggle('selected', isSelected);
+            const l = selectedBeatsLeft.has(beatNumber);
+            const r = selectedBeatsRight.has(beatNumber);
+            let color = '';
+            if (l && r) color = '#800080';
+            else if (l) color = '#ff0000';
+            else if (r) color = '#007bff';
+            else color = '';
+            dot.style.backgroundColor = color;
         }
     });
 }
@@ -1945,6 +1970,8 @@ function checkRhythmPattern() {
         }
         
         selectedBeats.clear();
+        selectedBeatsLeft.clear();
+        selectedBeatsRight.clear();
         return;
     }
 
@@ -1952,6 +1979,8 @@ function checkRhythmPattern() {
         const pattern = correctPatterns[currentStage];
         if (!pattern || selectedBeats.size !== pattern.length) {
             selectedBeats.clear();
+            selectedBeatsLeft.clear();
+            selectedBeatsRight.clear();
             return;
         }
 
@@ -1971,6 +2000,8 @@ function checkRhythmPattern() {
             }
         }
         selectedBeats.clear();
+        selectedBeatsLeft.clear();
+        selectedBeatsRight.clear();
         return;
     }
 
@@ -1978,6 +2009,8 @@ function checkRhythmPattern() {
     const pattern = correctPatterns[currentStage];
     if (!pattern || selectedBeats.size !== pattern.length) {
         selectedBeats.clear();
+        selectedBeatsLeft.clear();
+        selectedBeatsRight.clear();
         return;
     }
 
@@ -1989,6 +2022,8 @@ function checkRhythmPattern() {
     }
     
     selectedBeats.clear();
+    selectedBeatsLeft.clear();
+    selectedBeatsRight.clear();
 }
 //====================================================
 // UI更新関数
@@ -2009,6 +2044,8 @@ function updateStageContent() {
     updateAnswer();
     createRhythmDots();
     selectedBeats.clear();
+    selectedBeatsLeft.clear();
+    selectedBeatsRight.clear();
     isLoopComplete = false;
     updateProblemElements();
 }
@@ -2092,26 +2129,42 @@ document.addEventListener('contextmenu', (e) => {
 
 // Web Audio のシームレスループを使うため、ended での手動ループは不要
 
-prevButton.addEventListener('click', () => {
-    clickCounts.prev++;
-    if (currentStage > 0) {
-        currentStage--;
-        updateStageContent();
-    }
-});
+// LEFT: NEXT1 behavior (repurposed from previous)
+if (next1Button) {
+    next1Button.addEventListener('click', () => {
+        // Count as independent next1 and overall next
+        clickCounts.next1++;
+        clickCounts.next++;
+        if (currentStage === 17) return;
+        if (clearedStages.has(currentStage)) {
+            currentStage++;
+            updateStageContent();
+            onNext1Effect();
+            return;
+        }
+        const currentBeat = Math.floor(currentBeatProgress) + 1;
+        selectedBeats.add(currentBeat);
+        selectedBeatsLeft.add(currentBeat);
+        onNext1Effect();
+    });
+}
 
 nextButton.addEventListener('click', () => {
+    clickCounts.next2++;
     clickCounts.next++;
     if (currentStage === 17) return;
 
     if (clearedStages.has(currentStage)) {
         currentStage++;
         updateStageContent();
+        onNext2Effect();
         return;
     }
 
     const currentBeat = Math.floor(currentBeatProgress) + 1;
     selectedBeats.add(currentBeat);
+    selectedBeatsRight.add(currentBeat);
+    onNext2Effect();
 });
 
 // プログレスバーのドラッグ制御
@@ -2751,7 +2804,7 @@ async function initialize() {
             if (canvas) {
                 window.bgVisualizer = bgVisualizer = new BackgroundVisualizer(audio, canvas);
                 // 右側1/4を省く（必要に応じて調整可）
-                bgVisualizer.setRange(0, 0.69);
+                bgVisualizer.setRange(0, 0.68);
                 bgVisualizer.direction = 'lowLeft';
                 bgVisualizer.updateColorForStage(currentStage);
                 bgVisualizer.start();
@@ -2803,4 +2856,30 @@ document.addEventListener('keydown', (event) => {
 });
 
 // 初期化実行
+// Keyboard shortcuts (PC): F = NEXT1 (left), J = NEXT2 (right)
+document.addEventListener('keydown', (event) => {
+    if (event.repeat) return;
+    const key = (event.key || '').toLowerCase();
+    if (key === 'f') {
+        const btn = document.getElementById('next1Button');
+        if (btn) {
+            event.preventDefault();
+            btn.click();
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => { btn.style.transform = 'scale(1)'; }, 100);
+        }
+        return;
+    }
+    if (key === 'j') {
+        const btn = document.getElementById('nextButton');
+        if (btn) {
+            event.preventDefault();
+            btn.click();
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => { btn.style.transform = 'scale(1)'; }, 100);
+        }
+        return;
+    }
+});
+
 initialize();
