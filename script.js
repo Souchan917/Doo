@@ -740,7 +740,7 @@ const stageSettings = {
     13: { dots: 16 },
     14: { dots: 8 },
     15: { dots: 8 },
-    16: { dots: 16 },
+    16: { dots: 32 },
     17: { dots: 8 }
 };
 const correctPatterns = {
@@ -1016,12 +1016,12 @@ class BackgroundVisualizer {
         // 全体高さスケール（1.0で等倍）
         this.heightScale = 1.0;
         // 各帯域の独立スケーリング用パラメータ
-        this.peaks = null; this.peakDecay = 0.993; this.gainGamma = 1.6; this.topCurve = 1.4; this.fall = 0.9; this.attack = 0.1; this.direction = 'lowLeft';
+        this.peaks = null; this.peakDecay = 0.993; this.gainGamma = 1.6; this.topCurve = 1.4; this.fall = 0.8; this.attack = 0.2; this.direction = 'lowLeft';
         // Ensure analyser is configured for minimal latency if already available
         this._analyserConfigured = false;
         try {
             if (this.player && this.player.analyser) {
-                this.player.analyser.fftSize = 512;
+                this.player.analyser.fftSize = 212;
                 this.player.analyser.smoothingTimeConstant = 0.0;
                 this._analyserConfigured = true;
             }
@@ -1089,7 +1089,7 @@ class BackgroundVisualizer {
 
     updateColorForStage(stage) {
         if (stage === 16) {
-            this.color = '#ffffff';
+            this.color = '#000';
             return;
         }
         try {
@@ -1668,7 +1668,7 @@ _updateNumberTextGimmick(element, config, containerSize) {
             dot.style.transform = 'translate(-50%, -50%)';
     
             // 見た目の設定
-            dot.style.backgroundColor = selectedBeats.has(beatNumber) ? '#000000' : '#FFFFFF';
+            dot.style.backgroundColor = selectedBeats.has(beatNumber) ? '#000000' : '#fff';
             dot.style.borderRadius = '50%';
             dot.style.opacity = '0.8';
             dot.style.transition = 'all 0.1s ease';
