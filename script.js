@@ -2163,39 +2163,18 @@ function doNext2Action() {
     onNext2Effect();
 }
 
-function bindMultiTouchPress(btn, action) {
+// Minimal multi-touch support: touchstart triggers action; click as fallback
+function _bindSimple(btn, action) {
     if (!btn) return;
-    let lastTouchTs = 0;
     const animate = () => {
-        try {
-            btn.style.transform = 'scale(0.95)';
-            setTimeout(() => { btn.style.transform = 'scale(1)'; }, 100);
-        } catch (_) {}
+        try { btn.style.transform = 'scale(0.95)'; setTimeout(() => { btn.style.transform = 'scale(1)'; }, 100); } catch(_){}
     };
-    const call = () => { action(); animate(); };
-    // Pointer Events (iOS13+/Android/desktop)
-    btn.addEventListener('pointerdown', (e) => {
-        if (e && e.pointerType === 'touch') {
-            e.preventDefault();
-            lastTouchTs = Date.now();
-            call();
-        }
-    });
-    // Touch fallback (older iOS Safari)
-    btn.addEventListener('touchstart', (e) => {
-        try { e.preventDefault(); } catch (_) {}
-        lastTouchTs = Date.now();
-        call();
-    }, { passive: false });
-    // Click as fallback (mouse/keyboard/programmatic)
-    btn.addEventListener('click', (e) => {
-        if (Date.now() - lastTouchTs < 300) return; // suppress duplicate click after touch
-        call();
-    });
+    btn.addEventListener('touchstart', (e) => { try { e.preventDefault(); } catch(_){} action(); animate(); }, { passive: false });
+    btn.addEventListener('click', () => { action(); animate(); });
 }
 
-bindMultiTouchPress(next1Button, doNext1Action);
-bindMultiTouchPress(nextButton, doNext2Action);
+_bindSimple(next1Button, doNext1Action);
+_bindSimple(nextButton, doNext2Action);
 
 // プログレスバーのドラッグ制御
 // プログレスバー: つまみ以外でも即ジャンプ＆ドラッグ開始
