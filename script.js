@@ -47,6 +47,20 @@ const BEATS_PER_SECOND = BPM / 60;
 const BEAT_INTERVAL = 60 / BPM; // 1拍の長さ（秒）
 const TOTAL_DURATION = 283; // 4:42 in seconds
 
+// 入力のビート判定を前寄りに補正（描画遅延やイベント遅延の吸収用）
+// 例: 30ms 前倒しで、境界付近で「前の拍」に入ってしまう誤判定を低減
+const INPUT_BEAT_BIAS_MS = 30;
+
+function getInputBeatNumber() {
+    const dotCount = stageSettings[currentStage]?.dots || 4;
+    const biasSec = (INPUT_BEAT_BIAS_MS || 0) / 1000;
+    // できるだけ最新の時間を参照（音声が準備済みなら audio.currentTime）
+    const t = (audio && typeof audio.currentTime === 'number') ? audio.currentTime : currentTime;
+    const progress = ((t + biasSec) * BEATS_PER_SECOND) % dotCount;
+    const beat = Math.floor(progress) + 1;
+    return Math.max(1, Math.min(dotCount, beat));
+}
+
 
 const HIRAGANA = [
     'あ', 'い', 'う', 'え', 'お',
@@ -2169,7 +2183,7 @@ function doNext1Action() {
         onNext1Effect();
         return;
     }
-    const currentBeat = Math.floor(currentBeatProgress) + 1;
+    const currentBeat = getInputBeatNumber();
     selectedBeats.add(currentBeat);
     selectedBeatsLeft.add(currentBeat);
     onNext1Effect();
@@ -2185,7 +2199,7 @@ function doNext2Action() {
         onNext2Effect();
         return;
     }
-    const currentBeat = Math.floor(currentBeatProgress) + 1;
+    const currentBeat = getInputBeatNumber();
     selectedBeats.add(currentBeat);
     selectedBeatsRight.add(currentBeat);
     onNext2Effect();
