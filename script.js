@@ -265,10 +265,10 @@ const STAGE_CONFIGS = {
                     y: 50,
                     size: 400,
                     beats: [
-                        { beat: 1, lines: [ { x: 20, y: 30, length: 30, width: 6 }, { x: 25, y: 30, length: 30, width: 6 } ] },
-                        { beat: 2, lines: [ { x: 40, y: 30, length: 30, width: 6 }, { x: 45, y: 30, length: 30, width: 6 } ] },
-                        { beat: 3, lines: [ { x: 60, y: 30, length: 30, width: 6 }, { x: 65, y: 30, length: 30, width: 6 } ] },
-                        { beat: 4, lines: [ { x: 80, y: 30, length: 30, width: 6 }, { x: 85, y: 30, length: 30, width: 6 } ] }
+                        { beat: 1, lines: [ { x: 24, y: 40, length: 28, width: 10 }, { x: 27, y: 40, length: 28, width: 10 } ] },
+                        { beat: 2, lines: [ { x: 47, y: 40, length: 28, width: 10 }, { x: 50, y: 40, length: 28, width: 10 } ] },
+                        { beat: 3, lines: [ { x: 70, y: 40, length: 28, width: 10 }, { x: 73, y: 40, length: 28, width: 10 } ] },
+                        { beat: 4, lines: [ { x: 96, y: 40, length: 28, width: 10 }, { x: 99, y: 40, length: 28, width: 10 } ] }
                     ]
                 }
             }
@@ -602,7 +602,7 @@ let hintShown = false;
 const STAGE_ANSWERS = {
     0: "ーーー",
     1: "ーーー",
-    2: "テイル",
+    2: "スート",
     3: "ブライト",
     4: "せんたく",
     5: "ーーー",
@@ -745,8 +745,8 @@ const stageSettings = {
 };
 const correctPatterns = {
     0: [1, 2, 3, 4],
-    1: [1, 2, 4],
-    2: [2, 6, 8],
+    1: [1, 3, 4],
+    2: [1, 3, 7],
     3: [1, 2],
     4: [1, 4, 5, 7],
     5: [5, 6, 7, 8],
