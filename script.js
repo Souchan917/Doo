@@ -12,6 +12,33 @@ const titleArea = document.querySelector('.title-area h2');
 // Customize these later for Effect A/B
 function onNext1Effect() {}
 function onNext2Effect() {}
+
+//====================================================
+// NEXT色設定（デフォルト + ステージ別オーバーライド）
+//====================================================
+const DEFAULT_NEXT_COLORS = {
+    left: '#ff0000',  // 赤
+    right: '#007bff', // 青
+    both: '#800080',  // 紫
+    none: '#ffffff'   // 未選択（パズル内ドット用の基準色）
+};
+
+// 必要なステージのみ上書き（例示）
+// 使い方: STAGE_NEXT_COLORS[ステージ番号] = { left:'#xx', right:'#yy', both:'#zz', none:'#ww' };
+const STAGE_NEXT_COLORS = {
+    // 例: 16: { left: '#00ff88', right: '#ffaa00', both: '#66ccff' }
+};
+
+function getNextColorsForStage(stage) {
+    const o = STAGE_NEXT_COLORS[stage];
+    if (!o) return DEFAULT_NEXT_COLORS;
+    return {
+        left: o.left || DEFAULT_NEXT_COLORS.left,
+        right: o.right || DEFAULT_NEXT_COLORS.right,
+        both: o.both || DEFAULT_NEXT_COLORS.both,
+        none: o.none || DEFAULT_NEXT_COLORS.none,
+    };
+}
 //====================================================
 // 定数定義
 //====================================================
@@ -1682,7 +1709,7 @@ _updateNumberTextGimmick(element, config, containerSize) {
             dot.style.transform = 'translate(-50%, -50%)';
     
             // 見た目の設定
-            const lp = selectedBeatsLeft.has(beatNumber); const rp = selectedBeatsRight.has(beatNumber); let bg = '#fff'; if (lp && rp) bg = '#800080'; else if (lp) bg = '#ff0000'; else if (rp) bg = '#007bff'; dot.style.backgroundColor = bg;
+            { const colors = getNextColorsForStage(currentStage); const lp = selectedBeatsLeft.has(beatNumber); const rp = selectedBeatsRight.has(beatNumber); let bg = colors.none; if (lp && rp) bg = colors.both; else if (lp) bg = colors.left; else if (rp) bg = colors.right; dot.style.backgroundColor = bg; }
             dot.style.borderRadius = '50%';
             dot.style.opacity = '0.8';
             dot.style.transition = 'all 0.1s ease';
@@ -1931,10 +1958,11 @@ function updateRhythmDots() {
             dot.classList.toggle('selected', isSelected);
             const l = selectedBeatsLeft.has(beatNumber);
             const r = selectedBeatsRight.has(beatNumber);
+            const colors = getNextColorsForStage(currentStage);
             let color = '';
-            if (l && r) color = '#800080';
-            else if (l) color = '#ff0000';
-            else if (r) color = '#007bff';
+            if (l && r) color = colors.both;
+            else if (l) color = colors.left;
+            else if (r) color = colors.right;
             else color = '';
             dot.style.backgroundColor = color;
         }
