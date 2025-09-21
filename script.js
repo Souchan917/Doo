@@ -50,7 +50,7 @@ const TOTAL_DURATION = 283; // 4:42 in seconds
 // Audio URLs for calibration and main stages
 const AUDIO_URLS = {
     test: 'assets/audio/MUSICTEST.mp3',
-    main: 'assets/audio/MUSIC1000.mp3'
+    main: 'assets/audio/MUSIC2000.mp3'
 };
 
 // 入力のビート判定を前寄りに補正（描画遅延やイベント遅延の吸収用）
