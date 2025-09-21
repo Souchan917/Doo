@@ -2233,7 +2233,6 @@ function updateProblemElements() {
                         <button id="inputPlus" style="padding:6px 12px; font-family: 'M PLUS Rounded 1c', sans-serif; font-size: 18px; font-weight: 700;">+</button>
                     </div>
                     <div style="${rowCss}; margin-top: 8px;">
-                        <button id="calibStart" style="padding:8px 18px; border-radius:6px; background:#333; color:white; border:none; font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 700;">START</button>
                         <button id="calibReady" style="padding:8px 18px; border-radius:6px; background:#4CAF50; color:white; border:none; font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 700;">準備完了</button>
                     </div>
                 </div>
