@@ -53,6 +53,23 @@ const AUDIO_URLS = {
     main: 'assets/audio/MUSIC2000.mp3'
 };
 
+// Per-track volume preferences (0..1), set in code
+// Edit these values to adjust volumes per track
+const TRACK_VOLUMES = { test: 0.32, main: 0.5 };
+
+function getTrackKeyForUrl(url) {
+    if (!url) return null;
+    if (url === AUDIO_URLS.test) return 'test';
+    if (url === AUDIO_URLS.main) return 'main';
+    return null;
+}
+
+function applyVolumeForCurrentTrack() {
+    const key = getTrackKeyForUrl(audio?.url);
+    const v = (key && typeof TRACK_VOLUMES[key] === 'number') ? TRACK_VOLUMES[key] : 0.7;
+    try { audio.volume = v; } catch(_) {}
+}
+
 // 入力のビート判定を前寄りに補正（描画遅延やイベント遅延の吸収用）
 // 例: 30ms 前倒しで、境界付近で「前の拍」に入ってしまう誤判定を低減
 let INPUT_BEAT_BIAS_MS = (function() {
@@ -1171,7 +1188,8 @@ let isLoopComplete = false;
 let isHolding = false;
 let holdStartBeat = -1;
 const audio = new SeamlessLoopPlayer(AUDIO_URLS.test);
-audio.volume = 0.7;
+// Apply code-defined volume for initial track
+try { audio.volume = (typeof TRACK_VOLUMES.test === 'number') ? TRACK_VOLUMES.test : 0.7; } catch(_) {}
 
 // Seamless stage/audio switching state
 // removed pending switch polling; use scheduled switch instead
@@ -2387,7 +2405,12 @@ function updateProblemElements() {
                         const buf = map[AUDIO_URLS.test];
                         if (buf) audio.provideArrayBuffer(buf);
                     } catch(_) {}
-                    try { await audio.play(); isPlaying = true; playIcon.src = 'assets/images/controls/pause.png'; } catch(_) {}
+                    try {
+                        applyVolumeForCurrentTrack();
+                        await audio.play();
+                        isPlaying = true;
+                        playIcon.src = 'assets/images/controls/pause.png';
+                    } catch(_) {}
                 }
             });
             const readyBtn = $('calibReady');
@@ -2412,6 +2435,8 @@ function updateProblemElements() {
                 if (isPlaying) {
                     // schedule switch at next loop boundary and then move stage
                     audio.scheduleSwitchAtLoopEnd(AUDIO_URLS.main, nextBuf, () => {
+                        // apply per-track volume after switch
+                        applyVolumeForCurrentTrack();
                         currentStage = 0;
                         updateStageContent();
                     }).catch(() => {
@@ -2424,6 +2449,8 @@ function updateProblemElements() {
                         audio.url = AUDIO_URLS.main;
                         if (nextBuf) audio._prefetchedArrayBuffer = nextBuf;
                         audio._ready = null; // force reload on next play
+                        // apply volume for upcoming main track
+                        applyVolumeForCurrentTrack();
                     } catch (_) {}
                     currentStage = 0;
                     updateStageContent();
@@ -2500,6 +2527,8 @@ playButton.addEventListener('click', async () => {
         if (typeof audio._ensureContext === 'function') {
             await audio._ensureContext();
         }
+        // ensure correct per-track volume before starting
+        applyVolumeForCurrentTrack();
         await audio.play();
         playIcon.src = 'assets/images/controls/pause.png';
         isPlaying = true;
@@ -2807,6 +2836,8 @@ const debugTools = {
             row.appendChild(value);
             toolsRoot.appendChild(row);
         })(this);
+
+        // (removed) Per-track volume sliders in debug tools per user's request
     },
 
     // 強制的にステージを移動する関数
@@ -3260,7 +3291,7 @@ async function initialize() {
             if (canvas) {
                 window.bgVisualizer = bgVisualizer = new BackgroundVisualizer(audio, canvas);
                 // 右側1/4を省く（必要に応じて調整可）
-                bgVisualizer.setRange(0, 0.75);
+                bgVisualizer.setRange(0, 0.68);
                 bgVisualizer.direction = 'lowLeft';
                 bgVisualizer.updateColorForStage(currentStage);
                 bgVisualizer.start();
