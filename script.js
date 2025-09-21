@@ -1137,6 +1137,10 @@ let selectedBeats = new Set();
 // Track which NEXT pressed per beat for color (left=NEXT1, right=NEXT2)
 let selectedBeatsLeft = new Set();
 let selectedBeatsRight = new Set();
+// Buffer inputs across the loop boundary so first-beat presses aren't wiped
+let pendingSelectedBeats = new Set();
+let pendingSelectedBeatsLeft = new Set();
+let pendingSelectedBeatsRight = new Set();
 let lastBeat = -1;
 let isLoopComplete = false;
 let isHolding = false;
@@ -2065,6 +2069,16 @@ function updateRhythmDots() {
     lastLoopProgress = norm;
     lastBeat = currentBeat;
 
+    // Merge pending inputs after loop reset so first-beat presses persist
+    if (pendingSelectedBeats.size || pendingSelectedBeatsLeft.size || pendingSelectedBeatsRight.size) {
+        pendingSelectedBeats.forEach(b => selectedBeats.add(b));
+        pendingSelectedBeatsLeft.forEach(b => selectedBeatsLeft.add(b));
+        pendingSelectedBeatsRight.forEach(b => selectedBeatsRight.add(b));
+        pendingSelectedBeats.clear();
+        pendingSelectedBeatsLeft.clear();
+        pendingSelectedBeatsRight.clear();
+    }
+
     const dots = dotsContainer.querySelectorAll('.rhythm-dot');
     dots.forEach((dot, index) => {
         const beatNumber = index + 1;
@@ -2356,8 +2370,16 @@ function getInputBeatNumber() {
     const t = tBase + (INPUT_BEAT_BIAS_MS || 0) / 1000; // 正: 後ろ寄せ / 負: 前寄せ
     const beatPos = t * BEATS_PER_SECOND;
     const progress = beatPos % dotCount;
-    const nearest = Math.floor(progress + 0.5) % dotCount;
-    const beat = nearest + 1;
+    // Map to nearest beat, but avoid cross-boundary early mapping to beat 1
+    let nearestIdx = Math.floor(progress + 0.5); // may reach dotCount near wrap
+    if (nearestIdx === dotCount) {
+        const frac = progress - Math.floor(progress);
+        if (frac > 0.5) {
+            // Still in the last half of the previous beat -> treat as last beat
+            nearestIdx = dotCount - 1;
+        }
+    }
+    const beat = (nearestIdx % dotCount) + 1;
     return Math.max(1, Math.min(dotCount, beat));
 }
 
@@ -2422,8 +2444,9 @@ function doNext1Action() {
         return;
     }
     const currentBeat = getInputBeatNumber();
-    selectedBeats.add(currentBeat);
-    selectedBeatsLeft.add(currentBeat);
+    // Buffer the input so boundary reset in the same frame won't wipe it
+    pendingSelectedBeats.add(currentBeat);
+    pendingSelectedBeatsLeft.add(currentBeat);
     onNext1Effect();
 }
 
@@ -2438,8 +2461,9 @@ function doNext2Action() {
         return;
     }
     const currentBeat = getInputBeatNumber();
-    selectedBeats.add(currentBeat);
-    selectedBeatsRight.add(currentBeat);
+    // Buffer the input so boundary reset in the same frame won't wipe it
+    pendingSelectedBeats.add(currentBeat);
+    pendingSelectedBeatsRight.add(currentBeat);
     onNext2Effect();
 }
 
