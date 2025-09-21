@@ -2444,9 +2444,14 @@ function doNext1Action() {
         return;
     }
     const currentBeat = getInputBeatNumber();
-    // Buffer the input so boundary reset in the same frame won't wipe it
-    pendingSelectedBeats.add(currentBeat);
-    pendingSelectedBeatsLeft.add(currentBeat);
+    // Beat 1 -> buffer to apply just after wrap; others -> apply immediately in current loop
+    if (currentBeat === 1) {
+        pendingSelectedBeats.add(currentBeat);
+        pendingSelectedBeatsLeft.add(currentBeat);
+    } else {
+        selectedBeats.add(currentBeat);
+        selectedBeatsLeft.add(currentBeat);
+    }
     onNext1Effect();
 }
 
@@ -2461,9 +2466,14 @@ function doNext2Action() {
         return;
     }
     const currentBeat = getInputBeatNumber();
-    // Buffer the input so boundary reset in the same frame won't wipe it
-    pendingSelectedBeats.add(currentBeat);
-    pendingSelectedBeatsRight.add(currentBeat);
+    // Beat 1 -> buffer to apply just after wrap; others -> apply immediately in current loop
+    if (currentBeat === 1) {
+        pendingSelectedBeats.add(currentBeat);
+        pendingSelectedBeatsRight.add(currentBeat);
+    } else {
+        selectedBeats.add(currentBeat);
+        selectedBeatsRight.add(currentBeat);
+    }
     onNext2Effect();
 }
 
