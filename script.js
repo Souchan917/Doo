@@ -57,7 +57,7 @@ const AUDIO_URLS = {
 // 例: 30ms 前倒しで、境界付近で「前の拍」に入ってしまう誤判定を低減
 let INPUT_BEAT_BIAS_MS = (function() {
     const v = Number(localStorage.getItem('inputBeatBiasMs'));
-    return Number.isFinite(v) ? v : 0;
+    return Number.isFinite(v) ? v : 30;
 })();
 // 音楽出力側のオフセットは使わない（判定オフセットのみ使用）
 
