@@ -1131,6 +1131,8 @@ let currentTime = 0;
 let currentStage = -1;
 let clearedStages = new Set();
 let currentBeatProgress = 0;
+// previous loop progress [0..1). Used to detect exact visual loop wrap
+let lastLoopProgress = 0;
 let selectedBeats = new Set();
 // Track which NEXT pressed per beat for color (left=NEXT1, right=NEXT2)
 let selectedBeatsLeft = new Set();
@@ -2047,7 +2049,9 @@ function updateRhythmDots() {
     currentBeatProgress = ((rawProgress % dotCount) + dotCount) % dotCount;
     const currentBeat = Math.floor(currentBeatProgress) + 1;
 
-    if (currentBeat < oldBeat) {
+    // ループ先頭通過の検出を“連続進行の折り返し”で判定（オフセットと完全同期）
+    const norm = currentBeatProgress / dotCount; // 0..1
+    if (norm + 1e-6 < lastLoopProgress) {
         checkRhythmPattern();
         selectedBeats.clear();
         selectedBeatsLeft.clear();
@@ -2056,7 +2060,7 @@ function updateRhythmDots() {
     } else {
         isLoopComplete = false;
     }
-
+    lastLoopProgress = norm;
     lastBeat = currentBeat;
 
     const dots = dotsContainer.querySelectorAll('.rhythm-dot');
