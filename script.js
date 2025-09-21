@@ -42,22 +42,34 @@ function getNextColorsForStage(stage) {
 //====================================================
 // 定数定義
 //====================================================
-const BPM = 170;
+const BPM = 170.0;
 const BEATS_PER_SECOND = BPM / 60;
 const BEAT_INTERVAL = 60 / BPM; // 1拍の長さ（秒）
 const TOTAL_DURATION = 283; // 4:42 in seconds
 
+// Audio URLs for calibration and main stages
+const AUDIO_URLS = {
+    test: 'assets/audio/MUSICTEST.mp3',
+    main: 'assets/audio/MUSIC40.mp3'
+};
+
 // 入力のビート判定を前寄りに補正（描画遅延やイベント遅延の吸収用）
 // 例: 30ms 前倒しで、境界付近で「前の拍」に入ってしまう誤判定を低減
-const INPUT_BEAT_BIAS_MS = 0;
+let INPUT_BEAT_BIAS_MS = (function() {
+    const v = Number(localStorage.getItem('inputBeatBiasMs'));
+    return Number.isFinite(v) ? v : 0;
+})();
+// 音楽出力側のオフセットは使わない（判定オフセットのみ使用）
 
 function getInputBeatNumber() {
     const dotCount = stageSettings[currentStage]?.dots || 4;
     const biasSec = (INPUT_BEAT_BIAS_MS || 0) / 1000;
     // できるだけ最新の時間を参照（音声が準備済みなら audio.currentTime）
     const t = (audio && typeof audio.currentTime === 'number') ? audio.currentTime : currentTime;
-    const progress = ((t + biasSec) * BEATS_PER_SECOND) % dotCount;
-    const beat = Math.floor(progress) + 1;
+    const beatPos = (t + biasSec) * BEATS_PER_SECOND;
+    const progress = beatPos % dotCount;
+    const nearest = Math.floor(progress + 0.5) % dotCount;
+    const beat = nearest + 1;
     return Math.max(1, Math.min(dotCount, beat));
 }
 
@@ -776,6 +788,7 @@ function updateAnswer() {
 }
 
 const stageSettings = {
+    '-1': { dots: 8 },
     0: { dots: 4 },
     1: { dots: 4 },
     2: { dots: 8 },
@@ -1024,13 +1037,46 @@ class SeamlessLoopPlayer {
         this._volume = Math.max(0, Math.min(1, v));
         if (this.gainNode) this.gainNode.gain.value = this._volume;
     }
+
+    // Switch to a new audio URL (arrayBuffer optional). If playing, crossfade quickly at loop boundary.
+    async switchTo(url, arrayBuffer) {
+        await this._ensureContext();
+        // quick fade-out current
+        try {
+            const now = this.context.currentTime;
+            this.gainNode.gain.cancelScheduledValues(now);
+            this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, now);
+            this.gainNode.gain.linearRampToValueAtTime(0, now + 0.02);
+        } catch (_) {}
+        try { this.source && this.source.stop(); } catch (_) {}
+        try { this.source && this.source.disconnect(); } catch (_) {}
+        this.source = null;
+
+        // load new buffer
+        this.url = url;
+        this._ready = null;
+        this.buffer = null;
+        this._prefetchedArrayBuffer = arrayBuffer || this._prefetchedArrayBuffer || null;
+        await this._load();
+
+        // start from loop start
+        this._offset = this._loopStart;
+        const v = this._volume;
+        this._createSource(this._offset);
+        try {
+            const t = this.context.currentTime;
+            this.gainNode.gain.setValueAtTime(0, t);
+            this.gainNode.gain.linearRampToValueAtTime(v, t + 0.03);
+        } catch (_) {}
+        this._isPlaying = true;
+    }
 }
 //====================================================
 // ゲーム状態管理
 //====================================================
 let isPlaying = false;
 let currentTime = 0;
-let currentStage = 0;
+let currentStage = -1;
 let clearedStages = new Set();
 let currentBeatProgress = 0;
 let selectedBeats = new Set();
@@ -1041,8 +1087,13 @@ let lastBeat = -1;
 let isLoopComplete = false;
 let isHolding = false;
 let holdStartBeat = -1;
-const audio = new SeamlessLoopPlayer('assets/audio/MUSIC.mp3');
+const audio = new SeamlessLoopPlayer(AUDIO_URLS.test);
 audio.volume = 0.7;
+
+// Seamless stage/audio switching state
+let pendingStageSwitch = null; // { stage: number, url: string }
+let lastAudioPos = 0;
+let isAudioSwitching = false;
 
 //====================================================
 // 背景オーディオビジュアライザー
@@ -1940,7 +1991,10 @@ function updateRhythmDots() {
 
     const dotCount = stageSettings[currentStage]?.dots || 4;
     const oldBeat = lastBeat;
-    currentBeatProgress = (currentTime * BEATS_PER_SECOND) % dotCount;
+    // 視覚上のドット進行も判定オフセットに追従させる
+    const visualTime = currentTime + (INPUT_BEAT_BIAS_MS || 0) / 1000;
+    const rawProgress = visualTime * BEATS_PER_SECOND;
+    currentBeatProgress = ((rawProgress % dotCount) + dotCount) % dotCount;
     const currentBeat = Math.floor(currentBeatProgress) + 1;
 
     if (currentBeat < oldBeat) {
@@ -2080,7 +2134,7 @@ function updateProgress() {
 }
 
 function updateStageContent() {
-    titleArea.textContent = STAGE_NAMES[currentStage];
+    titleArea.textContent = (currentStage === -1) ? 'ステージテスト' : STAGE_NAMES[currentStage];
     updatePuzzleImage();
     updateBackgroundColor();
     updateAnswer();
@@ -2101,26 +2155,127 @@ function updateBackgroundColor() {
 
 function updateAnswer() {
     const answerElement = document.querySelector('.answer-area p');
+    if (currentStage === -1) {
+        answerElement.textContent = '---';
+        return;
+    }
     answerElement.textContent = STAGE_ANSWERS[currentStage];
 }
 
 function updateProblemElements() {
+    // ステージテスト: 専用UIを描画
+    if (currentStage === -1) {
+        const containerCss = `
+            width: 100%; height: 100%; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 14px;
+            background: white; border-radius: 10px; padding: 20px; color: #333;
+            font-family: 'M PLUS Rounded 1c', sans-serif;`;
+        const rowCss = `display:flex; align-items:center; gap:10px;`;
+
+        // 既にUIが存在するかチェック（毎フレ再描画しない）
+        let calibRoot = document.getElementById('calibRoot');
+        if (!calibRoot) {
+            problemArea.innerHTML = `
+                <div id="calibRoot" style="${containerCss}">
+                    <div style="${rowCss}">
+                        <button id="inputMinus" style="padding:6px 12px; font-family: 'M PLUS Rounded 1c', sans-serif; font-size: 18px; font-weight: 700;">-</button>
+                        <div id="inputVal" style="min-width:120px; text-align:center; font-size: 18px; font-weight: 700; font-family: 'M PLUS Rounded 1c', sans-serif;">${INPUT_BEAT_BIAS_MS} ms</div>
+                        <button id="inputPlus" style="padding:6px 12px; font-family: 'M PLUS Rounded 1c', sans-serif; font-size: 18px; font-weight: 700;">+</button>
+                    </div>
+                    <div style="${rowCss}; margin-top: 8px;">
+                        <button id="calibReady" style="padding:8px 18px; border-radius:6px; background:#4CAF50; color:white; border:none; font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 700;">準備完了</button>
+                    </div>
+                </div>
+            `;
+            calibRoot = document.getElementById('calibRoot');
+
+            const step = 10; // ms 単位
+            const $ = (id) => document.getElementById(id);
+            const updateDisplays = () => {
+                const iv = $('inputVal');
+                if (iv) iv.textContent = `${INPUT_BEAT_BIAS_MS} ms`;
+            };
+            const setInput = (ms) => {
+                INPUT_BEAT_BIAS_MS = Math.round(ms);
+                try { localStorage.setItem('inputBeatBiasMs', String(INPUT_BEAT_BIAS_MS)); } catch(_) {}
+                updateDisplays();
+            };
+            const bind = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
+            bind('inputMinus', () => setInput((INPUT_BEAT_BIAS_MS || 0) - step));
+            bind('inputPlus',  () => setInput((INPUT_BEAT_BIAS_MS || 0) + step));
+            bind('calibReady', () => {
+                // If playing, wait until loop boundary then switch stage+audio
+                if (isPlaying) {
+                    pendingStageSwitch = { stage: 0, url: AUDIO_URLS.main };
+                } else {
+                    // Not playing: switch immediately
+                    const bufMap = window.__audioBuffers || {};
+                    const nextBuf = bufMap[AUDIO_URLS.main];
+                    (async () => {
+                        try { await audio.switchTo(AUDIO_URLS.main, nextBuf); } catch(_) {}
+                        currentStage = 0;
+                        updateStageContent();
+                    })();
+                }
+            });
+        } else {
+            // 数値表示だけ更新（音楽再生中でも押下可）
+            const iv = document.getElementById('inputVal');
+            if (iv) iv.textContent = `${INPUT_BEAT_BIAS_MS} ms`;
+        }
+        return;
+    }
+
     gimmickManager.updateGimmick(currentStage, currentTime);
     gimmickManager.hideAllExcept(currentStage);
 }
 
 function update() {
     if (isPlaying) {
+        // 出力オフセットは使わず、そのままの currentTime を使用
         currentTime = audio.currentTime;
         updateProgress();
         updateRhythmDots();
         updateProblemElements();
+
+        // Detect loop boundary for seamless switch
+        const ap = (typeof audio.currentTime === 'number') ? audio.currentTime : 0;
+        if (pendingStageSwitch && !isAudioSwitching) {
+            if (ap < lastAudioPos - 0.05) { // wrapped to loop start
+                const target = pendingStageSwitch; pendingStageSwitch = null;
+                isAudioSwitching = true;
+                const bufMap = window.__audioBuffers || {};
+                const nextBuf = bufMap[target.url];
+                audio.switchTo(target.url, nextBuf).then(() => {
+                    isAudioSwitching = false;
+                    currentStage = target.stage;
+                    updateStageContent();
+                }).catch(() => {
+                    isAudioSwitching = false;
+                    currentStage = target.stage;
+                    updateStageContent();
+                });
+            }
+        }
+        lastAudioPos = ap;
     }
     // デバッグ用タイムスライダーを同期
     if (typeof debugTools?.updateTimeSlider === 'function') {
         debugTools.updateTimeSlider(currentTime);
     }
     requestAnimationFrame(update);
+}
+
+// --- override: 入力拍の計算（判定オフセットのみ） ---
+function getInputBeatNumber() {
+    const dotCount = stageSettings[currentStage]?.dots || 4;
+    const tBase = (audio && typeof audio.currentTime === 'number') ? audio.currentTime : currentTime;
+    const t = tBase + (INPUT_BEAT_BIAS_MS || 0) / 1000; // 正: 後ろ寄せ / 負: 前寄せ
+    const beatPos = t * BEATS_PER_SECOND;
+    const progress = beatPos % dotCount;
+    const nearest = Math.floor(progress + 0.5) % dotCount;
+    const beat = nearest + 1;
+    return Math.max(1, Math.min(dotCount, beat));
 }
 
 //====================================================
@@ -2409,11 +2564,60 @@ const debugTools = {
             self._timeSlider = slider;
             self._timeLabel = timeValue;
         })(this);
+
+        // 判定オフセット（ms）調整UIをデバッグツールに追加
+        (function setupJudgeOffsetUI(self){
+            const toolsRoot = document.getElementById('debugTools');
+            if (!toolsRoot || toolsRoot.querySelector('#judgeOffsetSlider')) return;
+
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.gap = '8px';
+            row.style.alignItems = 'center';
+            row.style.marginTop = '6px';
+
+            const label = document.createElement('div');
+            label.textContent = '判定オフセット:';
+            label.style.color = 'white';
+            label.style.fontSize = '12px';
+
+            const value = document.createElement('div');
+            value.id = 'judgeOffsetValue';
+            value.textContent = `${Number(INPUT_BEAT_BIAS_MS||0)}ms`;
+            value.style.color = 'white';
+            value.style.fontSize = '12px';
+            value.style.width = '48px';
+            value.style.textAlign = 'right';
+
+            const slider = document.createElement('input');
+            slider.type = 'range';
+            slider.id = 'judgeOffsetSlider';
+            slider.min = '-150';
+            slider.max = '150';
+            slider.step = '1';
+            slider.value = String(Number(INPUT_BEAT_BIAS_MS||0));
+            slider.style.flex = '1';
+
+            const apply = (ms) => {
+                const n = Number(ms);
+                INPUT_BEAT_BIAS_MS = Number.isFinite(n) ? n : 0;
+                try { localStorage.setItem('inputBeatBiasMs', String(INPUT_BEAT_BIAS_MS)); } catch(_){}
+                value.textContent = `${INPUT_BEAT_BIAS_MS}ms`;
+            };
+
+            slider.addEventListener('input', () => apply(slider.value));
+            slider.addEventListener('change', () => apply(slider.value));
+
+            row.appendChild(label);
+            row.appendChild(slider);
+            row.appendChild(value);
+            toolsRoot.appendChild(row);
+        })(this);
     },
 
     // 強制的にステージを移動する関数
     forceJumpToStage(stageNumber) {
-        if (stageNumber >= 0 && stageNumber <= 25) {
+        if (stageNumber >= -1 && stageNumber <= 25) {
             // ゲームの状態をリセット
             selectedBeats.clear();
             isLoopComplete = false;
@@ -2453,6 +2657,21 @@ updateStageContent = function() {
     if (stageSelect) {
         stageSelect.value = currentStage;
     }
+
+    // When jumping stages manually, ensure correct audio for test/main
+    try {
+        const map = window.__audioBuffers || {};
+        if (currentStage === -1) {
+            const want = AUDIO_URLS.test;
+            // if currently playing, switch immediately (no need to wait for loop)
+            const buf = map[want];
+            audio.switchTo(want, buf).catch(() => {});
+        } else if (currentStage === 0) {
+            const want = AUDIO_URLS.main;
+            const buf = map[want];
+            audio.switchTo(want, buf).catch(() => {});
+        }
+    } catch (_) {}
 };
 
 //====================================================
@@ -2496,7 +2715,7 @@ class AssetLoader {
                 ...Array.from({ length: 16 }, (_, i) => `assets/images/puzzles/wall/wall${i}.png`)
             ];
 
-            this.totalAssets = imageList.length + 1 + 1; // images + audio buffer + fonts
+            this.totalAssets = imageList.length + 2 + 1; // images + 2 audio buffers + fonts
             this.loadedAssets = 0;
 
             const imagePromises = imageList.map(src => new Promise((resolve, reject) => {
@@ -2512,17 +2731,22 @@ class AssetLoader {
                 img.src = src;
             }));
 
-            const audioBufferPromise = fetch('assets/audio/MUSIC20.mp3', { cache: 'force-cache' })
-                .then(res => { if (!res.ok) throw new Error('Audio fetch failed'); return res.arrayBuffer(); })
-                .then(buf => { this.cache.set('__audioArrayBuffer__', buf); this.loadedAssets++; this.updateLoadingProgress(); return buf; });
+            const audioUrls = [AUDIO_URLS.test, AUDIO_URLS.main];
+            const audioBufferPromises = audioUrls.map(url =>
+                fetch(url, { cache: 'force-cache' })
+                    .then(res => { if (!res.ok) throw new Error('Audio fetch failed: ' + url); return res.arrayBuffer(); })
+                    .then(buf => { this.cache.set(`__audio__:${url}`, buf); this.loadedAssets++; this.updateLoadingProgress(); return { url, buf }; })
+            );
 
             const fontPromise = (document.fonts && document.fonts.ready)
                 ? document.fonts.ready.then(() => { this.loadedAssets++; this.updateLoadingProgress(); })
                 : Promise.resolve().then(() => { this.loadedAssets++; this.updateLoadingProgress(); });
 
-            const [audioArrayBuffer] = await Promise.all([audioBufferPromise, fontPromise, ...imagePromises]);
+            const [audioPairs] = await Promise.all([Promise.all(audioBufferPromises), fontPromise, ...imagePromises]);
             window.__imageCache = this.cache;
-            window.__audioArrayBuffer = audioArrayBuffer;
+            const buffers = {};
+            (audioPairs || []).forEach(({ url, buf }) => { buffers[url] = buf; });
+            window.__audioBuffers = buffers;
 
             this.loadingScreen.classList.add('fade-out');
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -2683,7 +2907,7 @@ function initializeHintSystem() {
     // ヒントボタンの表示/非表示を制御
     function updateHintButtonVisibility() {
         // チュートリアル、最終ステージ、エンディングでは非表示
-        if (currentStage === 0 || currentStage >= 16) {
+        if (currentStage <= 0 || currentStage >= 16) {
             hintButton.classList.add('hidden');
             return;
         }
@@ -2843,9 +3067,9 @@ async function initialize() {
         if (audio && typeof audio._ensureContext === 'function') {
             try {
                 await audio._ensureContext();
-                if (window.__audioArrayBuffer) {
-                    audio.provideArrayBuffer(window.__audioArrayBuffer);
-                }
+                const map = window.__audioBuffers || {};
+                const buf = map[AUDIO_URLS.test];
+                if (buf) audio.provideArrayBuffer(buf);
                 await audio._load();
             } catch (_) {}
         }
