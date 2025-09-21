@@ -2018,6 +2018,8 @@ function createRhythmDots() {
 
     dotsContainer.innerHTML = '';
     const dotCount = stageSettings[currentStage]?.dots || 4;
+    // Set data attribute for CSS-based padding control
+    dotsContainer.dataset.dotCount = String(dotCount);
 
     for (let i = 0; i < dotCount; i++) {
         const dot = document.createElement('div');

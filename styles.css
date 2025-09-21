@@ -264,6 +264,13 @@ body.stage-23 { background-color: #5D4037; }
     padding: 0 0px;
 }
 
+/* Adjust horizontal padding by dot count */
+.rhythm-dots[data-dot-count="2"] { padding: 0 60px; }
+.rhythm-dots[data-dot-count="4"] { padding: 0 40px; }
+.rhythm-dots[data-dot-count="8"] { padding: 0 30px; }
+.rhythm-dots[data-dot-count="16"] { padding: 0 20px; }
+.rhythm-dots[data-dot-count="32"] { padding: 0 0px; }
+
 .rhythm-dot {
     width: 12px;
     height: 12px;
