@@ -57,7 +57,7 @@ const AUDIO_URLS = {
 // 例: 30ms 前倒しで、境界付近で「前の拍」に入ってしまう誤判定を低減
 let INPUT_BEAT_BIAS_MS = (function() {
     const v = Number(localStorage.getItem('inputBeatBiasMs'));
-    return Number.isFinite(v) ? v : 30;
+    return Number.isFinite(v) ? v : 0;
 })();
 // 音楽出力側のオフセットは使わない（判定オフセットのみ使用）
 
@@ -808,9 +808,14 @@ const stageSettings = {
     16: { dots: 32 },
     17: { dots: 8 }
 };
+// correctPatterns now supports two formats per stage:
+// - Legacy: array of beat numbers (e.g., [1,3,4]) meaning "press at those beats with any button".
+// - Dual-button: { mode: 'dual', steps: ['none'|'left'|'right'|'both', ...] } per beat.
+//   'left' corresponds to NEXT1 (red), 'right' to NEXT2 (blue), 'both' means both pressed during the beat.
 const correctPatterns = {
     0: [1, 2, 3, 4],
-    1: [1, 3, 4],
+    // Stage 1: 1st none, 2nd blue (right), 3rd red (left), 4th purple (both)
+    1: { mode: 'dual', steps: ['none', 'right', 'left', 'both'] },
     2: [1, 3, 7],
     3: [1, 2],
     4: [1, 4, 5, 7],
@@ -828,6 +833,21 @@ const correctPatterns = {
     16: [1, 2, 3, 4],
     17: [2, 4, 6, 8]
 };
+
+function _isDualPattern(p) {
+    return p && typeof p === 'object' && p.mode === 'dual' && Array.isArray(p.steps);
+}
+
+function _getExpectedStepForBeat(stage, beatNumber) {
+    const p = correctPatterns[stage];
+    if (_isDualPattern(p)) {
+        // steps are 1-based in beats
+        return p.steps[beatNumber - 1] || 'none';
+    }
+    // Legacy: return whether this beat is expected (true/false)
+    if (Array.isArray(p)) return p.includes(beatNumber);
+    return false;
+}
 
 //====================================================
 // シームレスループ用オーディオプレイヤー（Web Audio API）
@@ -2028,12 +2048,27 @@ function createRhythmDots() {
         // クリア済みステージの場合、正解のドットを selected 状態で表示
         if (clearedStages.has(currentStage)) {
             const beatNumber = i + 1;
-            if (correctPatterns[currentStage].includes(beatNumber)) {
+            if (Array.isArray(correctPatterns[currentStage]) && correctPatterns[currentStage].includes(beatNumber)) {
                 dot.classList.add('selected');
             }
         }
         
         dotsContainer.appendChild(dot);
+        // Dual pattern visual on cleared stage
+        if (clearedStages.has(currentStage)) {
+            const pattern = correctPatterns[currentStage];
+            if (_isDualPattern(pattern)) {
+                const beatNumber2 = i + 1;
+                const step2 = _getExpectedStepForBeat(currentStage, beatNumber2);
+                const colors2 = getNextColorsForStage(currentStage);
+                let bg2 = '';
+                if (step2 === 'both') bg2 = colors2.both;
+                else if (step2 === 'left') bg2 = colors2.left;
+                else if (step2 === 'right') bg2 = colors2.right;
+                dot.classList.remove('selected');
+                if (bg2) dot.style.backgroundColor = bg2;
+            }
+        }
     }
 }
 
@@ -2070,8 +2105,24 @@ function updateRhythmDots() {
         const beatNumber = index + 1;
         const isCurrentBeat = beatNumber === currentBeat;
         const isSelected = selectedBeats.has(beatNumber);
-        const isCorrectBeat = clearedStages.has(currentStage) && 
-            correctPatterns[currentStage].includes(beatNumber);
+        const isClearedStage = clearedStages.has(currentStage);
+        const patternForStage = correctPatterns[currentStage];
+        // If cleared and dual pattern, show expected color and skip default handling
+        if (isClearedStage && _isDualPattern(patternForStage)) {
+            dot.classList.remove('active');
+            dot.classList.remove('selected');
+            const step = _getExpectedStepForBeat(currentStage, beatNumber);
+            const colors = getNextColorsForStage(currentStage);
+            let color = '';
+            if (step === 'both') color = colors.both;
+            else if (step === 'left') color = colors.left;
+            else if (step === 'right') color = colors.right;
+            else color = '';
+            dot.style.backgroundColor = color;
+            return;
+        }
+        const isCorrectBeat = isClearedStage && Array.isArray(patternForStage) &&
+            patternForStage.includes(beatNumber);
 
         // クリア済みステージの場合、正解のドットを常に selected 状態に
         if (isCorrectBeat) {
@@ -2125,6 +2176,34 @@ function checkRhythmPattern() {
         selectedBeatsLeft.clear();
         selectedBeatsRight.clear();
         return;
+    }
+
+    // Dual-button judgement branch
+    {
+        const p = correctPatterns[currentStage];
+        if (_isDualPattern(p)) {
+            const steps = p.steps || [];
+            let ok = true;
+            for (let i = 1; i <= steps.length; i++) {
+                const step = steps[i - 1];
+                const l = selectedBeatsLeft.has(i);
+                const r = selectedBeatsRight.has(i);
+                if (step === 'none') { if (l || r) { ok = false; break; } }
+                else if (step === 'left') { if (!l || r) { ok = false; break; } }
+                else if (step === 'right') { if (!r || l) { ok = false; break; } }
+                else if (step === 'both') { if (!(l && r)) { ok = false; break; } }
+                else { ok = false; break; }
+            }
+            if (ok) {
+                clearedStages.add(currentStage);
+                currentStage++;
+                updateStageContent();
+            }
+            selectedBeats.clear();
+            selectedBeatsLeft.clear();
+            selectedBeatsRight.clear();
+            return;
+        }
     }
 
     if (currentStage === 16) {

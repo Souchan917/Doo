@@ -1,0 +1,31 @@
+        selectedBeatsLeft.clear();
+        selectedBeatsRight.clear();
+        return;
+    }
+
+    // 通常ステージの判定
+    const pattern = correctPatterns[currentStage];
+    if (!pattern || selectedBeats.size !== pattern.length) {
+        selectedBeats.clear();
+        selectedBeatsLeft.clear();
+        selectedBeatsRight.clear();
+        return;
+    }
+
+    const allBeatsCorrect = pattern.every(beat => selectedBeats.has(beat));
+    if (allBeatsCorrect) {
+        clearedStages.add(currentStage);
+        currentStage++;
+        updateStageContent();
+    }
+    
+    selectedBeats.clear();
+    selectedBeatsLeft.clear();
+    selectedBeatsRight.clear();
+}
+//====================================================
+// UI更新関数
+//====================================================
+const gimmickManager = new GimmickManager();
+
+function updateProgress() {

@@ -1,0 +1,15 @@
+                dot.classList.add('selected');
+            }
+        }
+        
+        dotsContainer.appendChild(dot);
+    }
+}
+
+function updateRhythmDots() {
+    if (!isPlaying && !clearedStages.has(currentStage)) return;
+
+    const dotsContainer = document.getElementById('rhythmDots');
+    if (!dotsContainer) return;
+
+    const dotCount = stageSettings[currentStage]?.dots || 4;
