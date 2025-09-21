@@ -1070,6 +1070,58 @@ class SeamlessLoopPlayer {
         } catch (_) {}
         this._isPlaying = true;
     }
+
+    // Schedule a switch to a different audio buffer exactly at the loop boundary (no fade)
+    async scheduleSwitchAtLoopEnd(url, arrayBuffer, onSwitched) {
+        if (!this._isPlaying) {
+            // if not playing, just switch buffer without playing
+            this.url = url;
+            this._ready = null;
+            this.buffer = null;
+            this._prefetchedArrayBuffer = arrayBuffer || null;
+            return;
+        }
+        await this._ensureContext();
+        // decode next buffer
+        let nextBuffer = null;
+        if (arrayBuffer) {
+            nextBuffer = await this.context.decodeAudioData(arrayBuffer.slice(0));
+        } else {
+            const res = await fetch(url);
+            const ab = await res.arrayBuffer();
+            nextBuffer = await this.context.decodeAudioData(ab.slice(0));
+        }
+        const pts = SeamlessLoopPlayer._detectLoopPoints(nextBuffer);
+        const now = this.context.currentTime;
+        const timeInLoop = this.currentTime; // seconds within current loop span
+        const remain = Math.max(0.001, (this.duration || 0) - (timeInLoop || 0));
+        const tSwitch = now + remain;
+
+        // prepare next source
+        const nextSrc = this.context.createBufferSource();
+        nextSrc.buffer = nextBuffer;
+        nextSrc.loop = true;
+        nextSrc.loopStart = pts.loopStart;
+        nextSrc.loopEnd = pts.loopEnd || nextBuffer.duration;
+        nextSrc.connect(this.gainNode);
+
+        // schedule start/stop at exact boundary
+        try { this.source && this.source.stop(tSwitch); } catch (_) {}
+        try { nextSrc.start(tSwitch, pts.loopStart); } catch (_) {}
+
+        // swap state at switch time
+        this.url = url;
+        this.buffer = nextBuffer;
+        this._loopStart = pts.loopStart;
+        this._loopEnd = pts.loopEnd;
+        this._startTime = tSwitch - pts.loopStart;
+        this.source = nextSrc;
+        this._isPlaying = true;
+
+        if (typeof onSwitched === 'function') {
+            setTimeout(() => { try { onSwitched(); } catch(_) {} }, Math.ceil(remain * 1000) + 10);
+        }
+    }
 }
 //====================================================
 // ゲーム状態管理
@@ -1091,9 +1143,7 @@ const audio = new SeamlessLoopPlayer(AUDIO_URLS.test);
 audio.volume = 0.7;
 
 // Seamless stage/audio switching state
-let pendingStageSwitch = null; // { stage: number, url: string }
-let lastAudioPos = 0;
-let isAudioSwitching = false;
+// removed pending switch polling; use scheduled switch instead
 
 //====================================================
 // 背景オーディオビジュアライザー
@@ -2183,6 +2233,7 @@ function updateProblemElements() {
                         <button id="inputPlus" style="padding:6px 12px; font-family: 'M PLUS Rounded 1c', sans-serif; font-size: 18px; font-weight: 700;">+</button>
                     </div>
                     <div style="${rowCss}; margin-top: 8px;">
+                        <button id="calibStart" style="padding:8px 18px; border-radius:6px; background:#333; color:white; border:none; font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 700;">START</button>
                         <button id="calibReady" style="padding:8px 18px; border-radius:6px; background:#4CAF50; color:white; border:none; font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 700;">準備完了</button>
                     </div>
                 </div>
@@ -2203,19 +2254,39 @@ function updateProblemElements() {
             const bind = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
             bind('inputMinus', () => setInput((INPUT_BEAT_BIAS_MS || 0) - step));
             bind('inputPlus',  () => setInput((INPUT_BEAT_BIAS_MS || 0) + step));
+            // START button: starts test music only
+            bind('calibStart', async () => {
+                if (!isPlaying) {
+                    try { await audio._ensureContext(); } catch(_) {}
+                    try {
+                        const map = window.__audioBuffers || {};
+                        const buf = map[AUDIO_URLS.test];
+                        if (buf) audio.provideArrayBuffer(buf);
+                    } catch(_) {}
+                    try { await audio.play(); isPlaying = true; playIcon.src = 'assets/images/controls/pause.png'; } catch(_) {}
+                }
+            });
             bind('calibReady', () => {
-                // If playing, wait until loop boundary then switch stage+audio
+                const bufMap = window.__audioBuffers || {};
+                const nextBuf = bufMap[AUDIO_URLS.main];
                 if (isPlaying) {
-                    pendingStageSwitch = { stage: 0, url: AUDIO_URLS.main };
-                } else {
-                    // Not playing: switch immediately
-                    const bufMap = window.__audioBuffers || {};
-                    const nextBuf = bufMap[AUDIO_URLS.main];
-                    (async () => {
-                        try { await audio.switchTo(AUDIO_URLS.main, nextBuf); } catch(_) {}
+                    // schedule switch at next loop boundary and then move stage
+                    audio.scheduleSwitchAtLoopEnd(AUDIO_URLS.main, nextBuf, () => {
                         currentStage = 0;
                         updateStageContent();
-                    })();
+                    }).catch(() => {
+                        currentStage = 0;
+                        updateStageContent();
+                    });
+                } else {
+                    // do not start audio; just move stage and prepare buffer for when user presses play
+                    try {
+                        audio.url = AUDIO_URLS.main;
+                        if (nextBuf) audio._prefetchedArrayBuffer = nextBuf;
+                        audio._ready = null; // force reload on next play
+                    } catch (_) {}
+                    currentStage = 0;
+                    updateStageContent();
                 }
             });
         } else {
@@ -2238,26 +2309,7 @@ function update() {
         updateRhythmDots();
         updateProblemElements();
 
-        // Detect loop boundary for seamless switch
-        const ap = (typeof audio.currentTime === 'number') ? audio.currentTime : 0;
-        if (pendingStageSwitch && !isAudioSwitching) {
-            if (ap < lastAudioPos - 0.05) { // wrapped to loop start
-                const target = pendingStageSwitch; pendingStageSwitch = null;
-                isAudioSwitching = true;
-                const bufMap = window.__audioBuffers || {};
-                const nextBuf = bufMap[target.url];
-                audio.switchTo(target.url, nextBuf).then(() => {
-                    isAudioSwitching = false;
-                    currentStage = target.stage;
-                    updateStageContent();
-                }).catch(() => {
-                    isAudioSwitching = false;
-                    currentStage = target.stage;
-                    updateStageContent();
-                });
-            }
-        }
-        lastAudioPos = ap;
+        // boundary switching handled by player scheduler now
     }
     // デバッグ用タイムスライダーを同期
     if (typeof debugTools?.updateTimeSlider === 'function') {
@@ -2658,20 +2710,7 @@ updateStageContent = function() {
         stageSelect.value = currentStage;
     }
 
-    // When jumping stages manually, ensure correct audio for test/main
-    try {
-        const map = window.__audioBuffers || {};
-        if (currentStage === -1) {
-            const want = AUDIO_URLS.test;
-            // if currently playing, switch immediately (no need to wait for loop)
-            const buf = map[want];
-            audio.switchTo(want, buf).catch(() => {});
-        } else if (currentStage === 0) {
-            const want = AUDIO_URLS.main;
-            const buf = map[want];
-            audio.switchTo(want, buf).catch(() => {});
-        }
-    } catch (_) {}
+    // Do not auto-switch audio here; playback is controlled by START/準備完了
 };
 
 //====================================================
