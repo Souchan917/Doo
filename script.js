@@ -787,11 +787,14 @@ function updateAnswer() {
     }
 }
 
+// stageSettings: per-stage configuration
+// - dots: number of beats per loop
+// - useLeftNext: whether left NEXT (NEXT1) is enabled/visible on this stage (default: true)
 const stageSettings = {
     '-1': { dots: 8 },
-    0: { dots: 4 },
+    0: { dots: 8, useLeftNext: false},
     1: { dots: 4 },
-    2: { dots: 8 },
+    2: { dots: 8, useLeftNext: false },
     3: { dots: 4 },
     4: { dots: 8 },
     5: { dots: 8 },
@@ -808,12 +811,18 @@ const stageSettings = {
     16: { dots: 32 },
     17: { dots: 8 }
 };
+
+function isLeftNextEnabledForStage(stage) {
+    const s = stageSettings[stage];
+    if (!s || typeof s.useLeftNext === 'undefined') return true; // default enabled
+    return !!s.useLeftNext;
+}
 // correctPatterns now supports two formats per stage:
 // - Legacy: array of beat numbers (e.g., [1,3,4]) meaning "press at those beats with any button".
 // - Dual-button: { mode: 'dual', steps: ['none'|'left'|'right'|'both', ...] } per beat.
 //   'left' corresponds to NEXT1 (red), 'right' to NEXT2 (blue), 'both' means both pressed during the beat.
 const correctPatterns = {
-    0: [1, 2, 3, 4],
+    0: [1, 2, 3, 4, 5, 6, 7, 8],
     // Stage 1: 1st none, 2nd blue (right), 3rd red (left), 4th purple (both)
     1: { mode: 'dual', steps: ['none', 'right', 'left', 'both'] },
     2: [1, 3, 7],
@@ -2279,6 +2288,27 @@ function updateStageContent() {
     selectedBeatsRight.clear();
     isLoopComplete = false;
     updateProblemElements();
+    updateNextButtonsVisibility();
+}
+
+// Show/hide left NEXT button per stage
+function updateNextButtonsVisibility() {
+    try {
+        const leftEnabled = isLeftNextEnabledForStage(currentStage);
+        const leftBtn = document.getElementById('next1Button');
+        if (leftBtn) {
+            // Keep layout from shifting: hide visually, keep space
+            if (leftEnabled) {
+                leftBtn.style.display = '';
+                leftBtn.style.visibility = '';
+                leftBtn.style.pointerEvents = '';
+            } else {
+                leftBtn.style.display = '';
+                leftBtn.style.visibility = 'hidden';
+                leftBtn.style.pointerEvents = 'none';
+            }
+        }
+    } catch (_) {}
 }
 
 function updateBackgroundColor() {
@@ -2490,6 +2520,8 @@ document.addEventListener('contextmenu', (e) => {
 
 // LEFT: NEXT1 behavior (repurposed from previous)
 function doNext1Action() {
+    // respect per-stage toggle
+    if (!isLeftNextEnabledForStage(currentStage)) return;
     // Count as independent next1 and overall next
     clickCounts.next1++;
     clickCounts.next++;
@@ -3286,7 +3318,7 @@ document.addEventListener('keydown', (event) => {
     const key = (event.key || '').toLowerCase();
     if (key === 'f') {
         const btn = document.getElementById('next1Button');
-        if (btn) {
+        if (btn && isLeftNextEnabledForStage(currentStage)) {
             event.preventDefault();
             btn.click();
             btn.style.transform = 'scale(0.95)';
