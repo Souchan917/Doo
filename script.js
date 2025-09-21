@@ -2232,8 +2232,18 @@ function updateProblemElements() {
                         <div id="inputVal" style="min-width:120px; text-align:center; font-size: 18px; font-weight: 700; font-family: 'M PLUS Rounded 1c', sans-serif;">${INPUT_BEAT_BIAS_MS} ms</div>
                         <button id="inputPlus" style="padding:6px 12px; font-family: 'M PLUS Rounded 1c', sans-serif; font-size: 18px; font-weight: 700;">+</button>
                     </div>
-                    <div style="${rowCss}; margin-top: 8px;">
-                        <button id="calibReady" style="padding:8px 18px; border-radius:6px; background:#4CAF50; color:white; border:none; font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 700;">準備完了</button>
+                    <div style="${rowCss}; margin-top: 8px; gap:12px;">
+
+                        <button id="calibReady" style="
+                            padding:10px 20px;
+                            border-radius:8px;
+                            background:#fff;
+                            color:#111;
+                            border:2px solid #111;
+                            font-family: 'M PLUS Rounded 1c', sans-serif;
+                            font-weight: 700;
+                            transition: background-color .15s ease, color .15s ease, transform .06s ease;
+                        ">準備完了</button>
                     </div>
                 </div>
             `;
@@ -2265,7 +2275,23 @@ function updateProblemElements() {
                     try { await audio.play(); isPlaying = true; playIcon.src = 'assets/images/controls/pause.png'; } catch(_) {}
                 }
             });
+            const readyBtn = $('calibReady');
+            const setReadyPressed = () => {
+                try {
+                    readyBtn.style.background = '#007bff';
+                    readyBtn.style.color = '#fff';
+                    readyBtn.style.borderColor = '#007bff';
+                } catch(_) {}
+            };
+            // tactile feedback
+            if (readyBtn) {
+                readyBtn.addEventListener('mousedown', () => { try { readyBtn.style.transform = 'scale(0.98)'; } catch(_){} });
+                readyBtn.addEventListener('mouseup',   () => { try { readyBtn.style.transform = 'scale(1)'; } catch(_){} });
+                readyBtn.addEventListener('touchstart', () => { try { readyBtn.style.transform = 'scale(0.98)'; } catch(_){} }, { passive: true });
+                readyBtn.addEventListener('touchend',   () => { try { readyBtn.style.transform = 'scale(1)'; } catch(_){} });
+            }
             bind('calibReady', () => {
+                setReadyPressed();
                 const bufMap = window.__audioBuffers || {};
                 const nextBuf = bufMap[AUDIO_URLS.main];
                 if (isPlaying) {
