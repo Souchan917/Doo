@@ -50,7 +50,7 @@ const TOTAL_DURATION = 283; // 4:42 in seconds
 // Audio URLs for calibration and main stages
 const AUDIO_URLS = {
     test: 'assets/audio/MUSICTEST.mp3',
-    main: 'assets/audio/MUSIC40.mp3'
+    main: 'assets/audio/MUSIC1000.mp3'
 };
 
 // 入力のビート判定を前寄りに補正（描画遅延やイベント遅延の吸収用）
@@ -808,7 +808,7 @@ const stageSettings = {
     13: { dots: 16 },
     14: { dots: 8 },
     15: { dots: 8 },
-    16: { dots: 32 },
+    16: { dots: 16 },
     17: { dots: 8 }
 };
 
@@ -3312,11 +3312,11 @@ document.addEventListener('keydown', (event) => {
 });
 
 // 初期化実行
-// Keyboard shortcuts (PC): F = NEXT1 (left), J = NEXT2 (right)
+// Keyboard shortcuts (PC): F/ArrowLeft = NEXT1 (left), J/ArrowRight = NEXT2 (right)
 document.addEventListener('keydown', (event) => {
     if (event.repeat) return;
     const key = (event.key || '').toLowerCase();
-    if (key === 'f') {
+    if (key === 'f' || key === 'arrowleft') {
         const btn = document.getElementById('next1Button');
         if (btn && isLeftNextEnabledForStage(currentStage)) {
             event.preventDefault();
@@ -3326,7 +3326,7 @@ document.addEventListener('keydown', (event) => {
         }
         return;
     }
-    if (key === 'j') {
+    if (key === 'j' || key === 'arrowright') {
         const btn = document.getElementById('nextButton');
         if (btn) {
             event.preventDefault();
