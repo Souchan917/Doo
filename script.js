@@ -90,6 +90,18 @@ function getInputBeatNumber() {
     return Math.max(1, Math.min(dotCount, beat));
 }
 
+// Wrap-safe version used for input registration to avoid last->first bleed
+function getWrapSafeBeatNumber() {
+    const dotCount = stageSettings[currentStage]?.dots || 4;
+    const biasSec = (INPUT_BEAT_BIAS_MS || 0) / 1000;
+    const t = (audio && typeof audio.currentTime === 'number') ? audio.currentTime : currentTime;
+    const beatPos = (t + biasSec) * BEATS_PER_SECOND;
+    const progress = ((beatPos % dotCount) + dotCount) % dotCount; // [0, dotCount)
+    let nearest = Math.floor(progress + 0.5);
+    if (nearest >= dotCount) nearest = dotCount - 1; // clamp instead of wrap
+    return nearest + 1; // 1..dotCount
+}
+
 
 const HIRAGANA = [
     'あ', 'い', 'う', 'え', 'お',
@@ -2561,7 +2573,7 @@ function doNext1Action() {
         onNext1Effect();
         return;
     }
-    const currentBeat = getInputBeatNumber();
+    const currentBeat = getWrapSafeBeatNumber();
     selectedBeats.add(currentBeat);
     selectedBeatsLeft.add(currentBeat);
     onNext1Effect();
@@ -2577,7 +2589,7 @@ function doNext2Action() {
         onNext2Effect();
         return;
     }
-    const currentBeat = getInputBeatNumber();
+    const currentBeat = getWrapSafeBeatNumber();
     selectedBeats.add(currentBeat);
     selectedBeatsRight.add(currentBeat);
     onNext2Effect();

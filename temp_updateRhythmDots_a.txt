@@ -1,0 +1,31 @@
+
+    const dotsContainer = document.getElementById('rhythmDots');
+    if (!dotsContainer) return;
+
+    const dotCount = stageSettings[currentStage]?.dots || 4;
+    const oldBeat = lastBeat;
+    // 視覚上のドット進行も判定オフセットに追従させる
+    const visualTime = currentTime + (INPUT_BEAT_BIAS_MS || 0) / 1000;
+    const rawProgress = visualTime * BEATS_PER_SECOND;
+    currentBeatProgress = ((rawProgress % dotCount) + dotCount) % dotCount;
+    const currentBeat = Math.floor(currentBeatProgress) + 1;
+
+    // ループ先頭通過の検出を“連続進行の折り返し”で判定（オフセットと完全同期）
+    const norm = currentBeatProgress / dotCount; // 0..1
+    if (norm + 1e-6 < lastLoopProgress) {
+        checkRhythmPattern();
+        selectedBeats.clear();
+        selectedBeatsLeft.clear();
+        selectedBeatsRight.clear();
+        isLoopComplete = true;
+    } else {
+        isLoopComplete = false;
+    }
+    lastLoopProgress = norm;
+    lastBeat = currentBeat;
+
+    const dots = dotsContainer.querySelectorAll('.rhythm-dot');
+    dots.forEach((dot, index) => {
+        const beatNumber = index + 1;
+        const isCurrentBeat = beatNumber === currentBeat;
+        const isSelected = selectedBeats.has(beatNumber);
