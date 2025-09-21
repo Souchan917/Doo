@@ -1159,7 +1159,7 @@ class BackgroundVisualizer {
         this.rafId = null;
         this.freqData = null;
         this.display = null; // smoothed heights [0..1]
-        this.barCountTarget = 10; // 約50本
+        this.barCountTarget = 30; // 約50本
         this.barCount = this.barCountTarget;
         this.devicePixelRatio = Math.max(1, window.devicePixelRatio || 1);
         this.color = '#fff';
@@ -1174,7 +1174,7 @@ class BackgroundVisualizer {
         // 全体高さスケール（1.0で等倍）
         this.heightScale = 1.0;
         // 各帯域の独立スケーリング用パラメータ
-        this.peaks = null; this.peakDecay = 0.993; this.gainGamma = 1.6; this.topCurve = 1.4; this.fall = 0.90; this.attack = 0.55; this.direction = 'lowLeft';
+        this.peaks = null; this.peakDecay = 0.993; this.gainGamma = 1.6; this.topCurve = 1.4; this.fall = 0.90; this.attack = 0.25; this.direction = 'lowLeft';
         // Ensure analyser is configured for minimal latency if already available
         this._analyserConfigured = false;
         try {
@@ -3149,7 +3149,7 @@ async function initialize() {
             if (canvas) {
                 window.bgVisualizer = bgVisualizer = new BackgroundVisualizer(audio, canvas);
                 // 右側1/4を省く（必要に応じて調整可）
-                bgVisualizer.setRange(0, 0.68);
+                bgVisualizer.setRange(0, 0.75);
                 bgVisualizer.direction = 'lowLeft';
                 bgVisualizer.updateColorForStage(currentStage);
                 bgVisualizer.start();
