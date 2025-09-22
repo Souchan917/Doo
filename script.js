@@ -137,6 +137,8 @@ const GIMMICK_TYPES = {
     LYRICS: 'lyrics',
     VERTICAL_LINES: 'vertical_lines' // 濁点っぽい縦線2本描画
 };
+// extend types without touching original block
+GIMMICK_TYPES.LINES_ARCS = 'lines_arcs';
 // クリック回数を追跡する変数を追加
 const clickCounts = {
     play: 0,
@@ -197,6 +199,30 @@ const STAGE_CONFIGS = {
                         { beat: 2, lines: [ { x: 55, y: 45, length: 32, width: 6 }, { x: 61, y: 45, length: 32, width: 6 } ] },
                         { beat: 3, lines: [ { x: 35, y: 65, length: 26, width: 6 }, { x: 41, y: 65, length: 26, width: 6 } ] },
                         { beat: 4, lines: [ { x: 70, y: 70, length: 34, width: 6 }, { x: 76, y: 70, length: 34, width: 6 } ] }
+                    ]
+                }
+            },
+            {
+                // LEFT NEXT: lines + arcs combo per beat
+                type: GIMMICK_TYPES.LINES_ARCS,
+                settings: {
+                    x: 50,
+                    y: 50,
+                    size: 400,
+                    // angles in degrees; cx,cy,radius in percent of element size; width in px (scaled)
+                    beats: [
+                        { beat: 1,
+                          lines: [ { x: 20, y: 25, length: 26, width: 8 } ],
+                          arcs:  [ { cx: 50, cy: 50, radius: 35, startAngle: 200, endAngle: 250, width: 8 } ] },
+                        { beat: 2,
+                          lines: [ { x: 80, y: 75, length: 26, width: 8 } ],
+                          arcs:  [ { cx: 50, cy: 50, radius: 35, startAngle: 20,  endAngle: 80,  width: 8 } ] },
+                        { beat: 3,
+                          lines: [ { x: 20, y: 75, length: 26, width: 8 } ],
+                          arcs:  [ { cx: 50, cy: 50, radius: 35, startAngle: 110, endAngle: 160, width: 8 } ] },
+                        { beat: 4,
+                          lines: [ { x: 80, y: 25, length: 26, width: 8 } ],
+                          arcs:  [ { cx: 50, cy: 50, radius: 35, startAngle: 290, endAngle: 340, width: 8 } ] }
                     ]
                 }
             }
@@ -358,10 +384,34 @@ const STAGE_CONFIGS = {
                     y: 50,
                     size: 400,
                     beats: [
-                        { beat: 1, lines: [ { x: 24, y: 40, length: 28, width: 10 }, { x: 27, y: 40, length: 28, width: 10 } ] },
-                        { beat: 2, lines: [ { x: 47, y: 40, length: 28, width: 10 }, { x: 50, y: 40, length: 28, width: 10 } ] },
-                        { beat: 3, lines: [ { x: 70, y: 40, length: 28, width: 10 }, { x: 73, y: 40, length: 28, width: 10 } ] },
-                        { beat: 4, lines: [ { x: 96, y: 40, length: 28, width: 10 }, { x: 99, y: 40, length: 28, width: 10 } ] }
+                        { beat: 1, lines: [ { x: 27, y: 40, length: 28, width: 10 }, { x: 30, y: 40, length: 28, width: 10 } ] },
+                        { beat: 2, lines: [ { x: 50, y: 40, length: 28, width: 10 }, { x: 53, y: 40, length: 28, width: 10 } ] },
+                        { beat: 3, lines: [ { x: 73, y: 40, length: 28, width: 10 }, { x: 76, y: 40, length: 28, width: 10 } ] },
+                        { beat: 4, lines: [ { x: 99, y: 40, length: 28, width: 10 }, { x: 102, y: 40, length: 28, width: 10 } ] }
+                    ]
+                }
+            },
+            {
+                // ステージ7: 左NEXTで直線＋円弧の複合要素を描画
+                type: GIMMICK_TYPES.LINES_ARCS,
+                settings: {
+                    x: 50,
+                    y: 50,
+                    size: 400,
+                    // 角度は度数法。cx,cy,radius は%（要素サイズ基準）。width はpx（400基準でスケール）。
+                    beats: [
+                        { beat: 1,
+                          lines: [ { x: 20, y: 42, length: 50, width: 8 } ],
+                          arcs:  [ { cx: 8, cy: 47, radius: 12, startAngle: 0,  endAngle: 90,  width: 10 } ] },
+                        { beat: 2,
+                          lines: [ { x: 43, y: 42, length: 50, width: 8 } ],
+                          arcs:  [ { cx: 31, cy: 47, radius: 12, startAngle: 0,  endAngle: 90,  width: 10 } ] },
+                        { beat: 3,
+                          lines: [ { x: 66, y: 42, length: 50, width: 8 } ],
+                          arcs:  [ { cx: 54, cy: 47, radius: 12, startAngle: 0,  endAngle: 90,  width: 10 } ] },
+                        { beat: 4,
+                          lines: [ { x: 89, y: 42, length: 50, width: 8 } ],
+                          arcs:  [ { cx: 77, cy: 47, radius: 12, startAngle: 0,  endAngle: 90,  width: 10 } ] },
                     ]
                 }
             }
@@ -636,6 +686,8 @@ STAGE_CONFIGS[5] = {
         }
     ]
 };
+
+// (removed) previously injected Stage 7 extra gimmick; now configured inline in STAGE_CONFIGS
 
 const STAGE_NAMES = [
     "チュートリアル",
@@ -1586,6 +1638,53 @@ class GimmickManager {
             element.appendChild(container);
         }
 
+        if (config.type === GIMMICK_TYPES.LINES_ARCS) {
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.width = '100%';
+            container.style.height = '100%';
+
+            // One full-size SVG to draw arcs
+            const svgNS = 'http://www.w3.org/2000/svg';
+            const svg = document.createElementNS(svgNS, 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '100%');
+            svg.style.position = 'absolute';
+            svg.style.left = '0';
+            svg.style.top = '0';
+            svg.style.pointerEvents = 'none';
+
+            const beats = (config.settings && config.settings.beats) || [];
+            beats.forEach(beatCfg => {
+                // arcs
+                (beatCfg.arcs || []).forEach((arcCfg, arcIdx) => {
+                    const path = document.createElementNS(svgNS, 'path');
+                    path.setAttribute('fill', 'none');
+                    path.setAttribute('stroke', arcCfg.color || '#111');
+                    path.dataset.beat = String(beatCfg.beat);
+                    path.dataset.which = `arc-${arcIdx}`;
+                    path.style.opacity = '0';
+                    svg.appendChild(path);
+                });
+            });
+
+            container.appendChild(svg);
+
+            // lines (reuse vertical line element structure)
+            beats.forEach(beatCfg => {
+                (beatCfg.lines || []).forEach((_, lineIdx) => {
+                    const line = document.createElement('div');
+                    line.className = 'shape-line';
+                    line.style.position = 'absolute';
+                    line.dataset.beat = String(beatCfg.beat);
+                    line.dataset.which = `line-${lineIdx}`;
+                    container.appendChild(line);
+                });
+            });
+
+            element.appendChild(container);
+        }
+
         if (config.type === GIMMICK_TYPES.LYRICS) {
             // テキストを入れるコンテナ
             const textWrap = document.createElement('div');
@@ -1914,6 +2013,10 @@ _updateNumberTextGimmick(element, config, containerSize) {
         container.style.left = '0';
 
         const beats = (config.settings && config.settings.beats) || [];
+        // Stage-specific assignment: Stage 7 uses RIGHT(NEXT2) presses only
+        const stageIdForElement = (() => { try { return parseInt((element.id || '').split('-')[1] || '-1', 10); } catch(_) { return -1; } })();
+        const useRightOnly = (stageIdForElement === 7);
+        const visibleSet = useRightOnly ? selectedBeatsRight : selectedBeats;
         beats.forEach(beatCfg => {
             (beatCfg.lines || []).forEach((lineCfg, lineIdx) => {
                 const sel = `.dakuten-line[data-beat='${beatCfg.beat}'][data-which='${lineIdx}']`;
@@ -1929,7 +2032,7 @@ _updateNumberTextGimmick(element, config, containerSize) {
                 lineEl.style.transform = 'translate(-50%, -50%)';
                 lineEl.style.backgroundColor = '#111';
                 lineEl.style.borderRadius = `${Math.max(1, width/2)}px`;
-                lineEl.style.opacity = selectedBeats.has(beatCfg.beat) ? '1' : '0';
+                lineEl.style.opacity = visibleSet.has(beatCfg.beat) ? '1' : '0';
                 lineEl.style.transition = 'opacity 0.1s ease, transform 0.1s ease';
 
                 // 現在拍のときに少し強調したい場合は以下のコメントアウトを有効化
@@ -1938,6 +2041,78 @@ _updateNumberTextGimmick(element, config, containerSize) {
                 // }
             });
         });
+    }
+
+    _updateLinesArcsGimmick(element, config, containerSize) {
+        const scaleFactor = containerSize / 400;
+        const container = element.querySelector('div');
+        if (!container) return;
+        const svg = container.querySelector('svg');
+        const beats = (config.settings && config.settings.beats) || [];
+
+        // Left NEXT (NEXT1) controls this gimmick's visibility
+        const visibleSet = selectedBeatsLeft;
+
+        // Update lines similar to vertical lines
+        beats.forEach(beatCfg => {
+            (beatCfg.lines || []).forEach((lineCfg, idx) => {
+                const sel = `[data-beat='${beatCfg.beat}'][data-which='line-${idx}']`;
+                const lineEl = container.querySelector(sel);
+                if (!lineEl) return;
+                const height = (lineCfg.length || 24) * scaleFactor;
+                const width = (lineCfg.width || 6) * scaleFactor;
+                lineEl.style.width = `${width}px`;
+                lineEl.style.height = `${height}px`;
+                lineEl.style.left = `${lineCfg.x}%`;
+                lineEl.style.top = `${lineCfg.y}%`;
+                lineEl.style.transform = 'translate(-50%, -50%)';
+                lineEl.style.backgroundColor = '#111';
+                lineEl.style.borderRadius = `${Math.max(1, width/2)}px`;
+                lineEl.style.opacity = visibleSet.has(beatCfg.beat) ? '1' : '0';
+                lineEl.style.transition = 'opacity 0.1s ease, transform 0.1s ease';
+            });
+        });
+
+        // Update arcs in the shared SVG
+        if (svg) {
+            // Make sure viewBox matches pixel canvas for consistent coordinates
+            const sizePx = element.clientWidth || element.offsetWidth || containerSize;
+            svg.setAttribute('viewBox', `0 0 ${sizePx} ${sizePx}`);
+
+            beats.forEach(beatCfg => {
+                (beatCfg.arcs || []).forEach((arcCfg, arcIdx) => {
+                    const sel = `path[data-beat='${beatCfg.beat}'][data-which='arc-${arcIdx}']`;
+                    const pathEl = svg.querySelector(sel);
+                    if (!pathEl) return;
+
+                    const cx = (arcCfg.cx != null ? arcCfg.cx : 50) / 100 * sizePx;
+                    const cy = (arcCfg.cy != null ? arcCfg.cy : 50) / 100 * sizePx;
+                    const radiusPx = (arcCfg.radius != null ? arcCfg.radius : 20) / 100 * sizePx;
+                    const sw = (arcCfg.width != null ? arcCfg.width : 6) * scaleFactor;
+                    const a1 = ((arcCfg.startAngle != null ? arcCfg.startAngle : 0) * Math.PI) / 180;
+                    const a2 = ((arcCfg.endAngle != null ? arcCfg.endAngle : 0) * Math.PI) / 180;
+
+                    const x1 = cx + radiusPx * Math.cos(a1);
+                    const y1 = cy + radiusPx * Math.sin(a1);
+                    const x2 = cx + radiusPx * Math.cos(a2);
+                    const y2 = cy + radiusPx * Math.sin(a2);
+
+                    let delta = (arcCfg.endAngle - arcCfg.startAngle);
+                    // normalize to [0, 360)
+                    while (delta < 0) delta += 360;
+                    while (delta >= 360) delta -= 360;
+                    const largeArc = delta > 180 ? 1 : 0;
+                    const sweep = (arcCfg.endAngle >= arcCfg.startAngle) ? 1 : 0;
+
+                    const d = `M ${x1} ${y1} A ${radiusPx} ${radiusPx} 0 ${largeArc} ${sweep} ${x2} ${y2}`;
+                    pathEl.setAttribute('d', d);
+                    pathEl.setAttribute('stroke', arcCfg.color || '#111');
+                    pathEl.setAttribute('stroke-width', String(sw));
+                    pathEl.style.opacity = visibleSet.has(beatCfg.beat) ? '1' : '0';
+                    pathEl.style.transition = 'opacity 0.1s ease';
+                });
+            });
+        }
     }
 
     updateGimmick(stageId) {
@@ -2007,6 +2182,10 @@ _updateNumberTextGimmick(element, config, containerSize) {
 
                 case GIMMICK_TYPES.VERTICAL_LINES:
                     this._updateVerticalLinesGimmick(element, gimmickConfig, containerSize);
+                    break;
+
+                case GIMMICK_TYPES.LINES_ARCS:
+                    this._updateLinesArcsGimmick(element, gimmickConfig, containerSize);
                     break;
 
                 case GIMMICK_TYPES.SEGMENT:
@@ -2574,8 +2753,13 @@ function doNext1Action() {
         return;
     }
     const currentBeat = getWrapSafeBeatNumber();
-    selectedBeats.add(currentBeat);
-    selectedBeatsLeft.add(currentBeat);
+    if (currentStage === 7) {
+        // Stage 7: LEFT draws only its own shapes; do not affect global selection
+        selectedBeatsLeft.add(currentBeat);
+    } else {
+        selectedBeats.add(currentBeat);
+        selectedBeatsLeft.add(currentBeat);
+    }
     onNext1Effect();
 }
 
