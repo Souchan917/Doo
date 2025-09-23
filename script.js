@@ -135,6 +135,7 @@ const GIMMICK_TYPES = {
     NUMBER_TEXT: 'number_text',
     CLICK_COUNTER: 'click_counter',  // 新しく追加
     LYRICS: 'lyrics',
+    MORSE_DISPLAY: 'morse_display',
     VERTICAL_LINES: 'vertical_lines' // 濁点っぽい縦線2本描画
 };
 // extend types without touching original block
@@ -545,6 +546,16 @@ const STAGE_CONFIGS = {
     16: {
         gimmicks: [
             {
+                type: GIMMICK_TYPES.MORSE_DISPLAY,
+                settings: {
+                    x: 50,
+                    y: 35,
+                    size: 260,
+                    fontScale: 0.35,
+                    letterSpacing: 8
+                }
+            },
+            {
                 type: GIMMICK_TYPES.CLICK_COUNTER,
                 settings: {
                     x: 30,
@@ -743,7 +754,7 @@ const PUZZLE_IMAGES = {
     13: "assets/images/puzzles/puzzle13.png",
     14: "assets/images/puzzles/puzzle14.png",
     15: "assets/images/puzzles/puzzle15.png",
-    16: "assets/images/puzzles/puzzle16.png",
+    16: "assets/images/puzzles/puzzle999.png",
     17: "assets/images/puzzles/puzzle17.png"
 };
 
@@ -1276,6 +1287,118 @@ let selectedBeatsLeft = new Set();
 let selectedBeatsRight = new Set();
 let lastBeat = -1;
 let isLoopComplete = false;
+
+const MORSE_CODE_MAP = {
+    '.-': 'A',
+    '-...': 'B',
+    '-.-.': 'C',
+    '-..': 'D',
+    '.': 'E',
+    '..-.': 'F',
+    '--.': 'G',
+    '....': 'H',
+    '..': 'I',
+    '.---': 'J',
+    '-.-': 'K',
+    '.-..': 'L',
+    '--': 'M',
+    '-.': 'N',
+    '---': 'O',
+    '.--.': 'P',
+    '--.-': 'Q',
+    '.-.': 'R',
+    '...': 'S',
+    '-': 'T',
+    '..-': 'U',
+    '...-': 'V',
+    '.--': 'W',
+    '-..-': 'X',
+    '-.--': 'Y',
+    '--..': 'Z',
+    '-----': '0',
+    '.----': '1',
+    '..---': '2',
+    '...--': '3',
+    '....-': '4',
+    '.....': '5',
+    '-....': '6',
+    '--...': '7',
+    '---..': '8',
+    '----.': '9'
+};
+
+const stage16MorseState = {
+    isActive: false,
+    currentBeatSymbol: null,
+    currentPattern: '',
+    decodedText: '',
+    displayText: ''
+};
+
+function stage16SetActive(active) {
+    if (active) {
+        stage16MorseState.isActive = true;
+        stage16MorseState.currentBeatSymbol = null;
+        stage16MorseState.currentPattern = '';
+        stage16MorseState.decodedText = '';
+        stage16MorseState.displayText = '';
+        return;
+    }
+
+    if (!stage16MorseState.isActive) return;
+    if (stage16MorseState.currentBeatSymbol !== null) {
+        stage16ProcessCurrentBeat();
+    }
+    stage16FinalizePattern(true);
+    stage16MorseState.isActive = false;
+    stage16MorseState.currentBeatSymbol = null;
+    stage16MorseState.currentPattern = '';
+}
+
+function stage16RegisterInput(symbol) {
+    if (!stage16MorseState.isActive) return;
+    const current = stage16MorseState.currentBeatSymbol;
+    if (current === null) {
+        stage16MorseState.currentBeatSymbol = symbol;
+        return;
+    }
+    if (current !== symbol) {
+        stage16MorseState.currentBeatSymbol = 'invalid';
+    }
+}
+
+function stage16ProcessCurrentBeat() {
+    if (!stage16MorseState.isActive) return;
+    const symbol = stage16MorseState.currentBeatSymbol;
+    if (symbol === 'dash') {
+        stage16MorseState.currentPattern += '-';
+    } else if (symbol === 'dot') {
+        stage16MorseState.currentPattern += '.';
+    } else if (symbol === 'invalid') {
+        stage16MorseState.currentPattern = '';
+    } else {
+        stage16FinalizePattern(false);
+    }
+    stage16MorseState.currentBeatSymbol = null;
+}
+
+function stage16FinalizePattern(forceFinalize) {
+    if (!stage16MorseState.currentPattern) return;
+    const letter = MORSE_CODE_MAP[stage16MorseState.currentPattern] || '?';
+    stage16MorseState.decodedText += letter;
+    stage16MorseState.displayText = stage16MorseState.decodedText;
+    stage16MorseState.currentPattern = '';
+}
+
+function stage16HandleTiming(beatChanged, loopWrapped) {
+    if (!stage16MorseState.isActive) return;
+    if (beatChanged) {
+        stage16ProcessCurrentBeat();
+    }
+    if (loopWrapped) {
+        stage16FinalizePattern(true);
+    }
+}
 let isHolding = false;
 let holdStartBeat = -1;
 const audio = new SeamlessLoopPlayer(AUDIO_URLS.test);
@@ -1627,6 +1750,19 @@ class GimmickManager {
             element.appendChild(container);
         }
 
+        if (config.type === GIMMICK_TYPES.MORSE_DISPLAY) {
+            element.style.display = 'flex';
+            element.style.flexDirection = 'column';
+            element.style.alignItems = 'center';
+            element.style.justifyContent = 'center';
+            element.style.textAlign = 'center';
+            element.style.fontFamily = "'M PLUS Rounded 1c', sans-serif";
+            const textEl = document.createElement('div');
+            textEl.className = 'morse-display-text';
+            textEl.style.fontWeight = '700';
+            element.appendChild(textEl);
+        }
+
         if (config.type === GIMMICK_TYPES.RHYTHM_DOTS) {
             const container = document.createElement('div');
             container.style.position = 'absolute';
@@ -1915,6 +2051,21 @@ class GimmickManager {
         });
     }
 
+    _updateMorseDisplayGimmick(element, config, size) {
+        const textEl = element.querySelector('.morse-display-text');
+        if (!textEl) return;
+        const settings = config.settings || {};
+        const fontScale = (typeof settings.fontScale === 'number') ? settings.fontScale : 0.35;
+        const fontSize = Math.max(12, size * fontScale);
+        textEl.style.fontSize = `${fontSize}px`;
+        if (typeof settings.letterSpacing === 'number') {
+            textEl.style.letterSpacing = `${settings.letterSpacing}px`;
+        } else {
+            textEl.style.letterSpacing = '';
+        }
+        const text = stage16MorseState.displayText || '';
+        textEl.textContent = text || '';
+    }
 
     // _updateNumberTextGimmick関数を更新
 _updateNumberTextGimmick(element, config, containerSize) {
@@ -2380,6 +2531,10 @@ _updateNumberTextGimmick(element, config, containerSize) {
                     this._updateClickCounterGimmick(element, gimmickConfig, size);
                     break;
 
+                case GIMMICK_TYPES.MORSE_DISPLAY:
+                    this._updateMorseDisplayGimmick(element, gimmickConfig, size);
+                    break;
+
                 case GIMMICK_TYPES.LYRICS:
                     this._updateLyricsGimmick(element, gimmickConfig, size, scaleFactor);
                     break;
@@ -2486,7 +2641,14 @@ function updateRhythmDots() {
 
     // ループ先頭通過の検出を“連続進行の折り返し”で判定（オフセットと完全同期）
     const norm = currentBeatProgress / dotCount; // 0..1
-    if (norm + 1e-6 < lastLoopProgress) {
+    const beatChanged = oldBeat !== -1 && currentBeat !== oldBeat;
+    const loopWrapped = norm + 1e-6 < lastLoopProgress;
+
+    if (currentStage === 16) {
+        stage16HandleTiming(beatChanged, loopWrapped);
+    }
+
+    if (loopWrapped) {
         checkRhythmPattern();
         selectedBeats.clear();
         selectedBeatsLeft.clear();
@@ -2676,6 +2838,7 @@ function updateStageContent() {
     selectedBeatsLeft.clear();
     selectedBeatsRight.clear();
     isLoopComplete = false;
+    stage16SetActive(currentStage === 16);
     updateProblemElements();
     updateNextButtonsVisibility();
 }
@@ -2940,6 +3103,9 @@ function doNext1Action() {
         selectedBeats.add(currentBeat);
         selectedBeatsLeft.add(currentBeat);
     }
+    if (currentStage === 16) {
+        stage16RegisterInput('dash');
+    }
     onNext1Effect();
 }
 
@@ -2956,6 +3122,9 @@ function doNext2Action() {
     const currentBeat = getWrapSafeBeatNumber();
     selectedBeats.add(currentBeat);
     selectedBeatsRight.add(currentBeat);
+    if (currentStage === 16) {
+        stage16RegisterInput('dot');
+    }
     onNext2Effect();
 }
 
