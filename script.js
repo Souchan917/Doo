@@ -683,6 +683,33 @@ STAGE_CONFIGS[5] = {
                     { text: "~♪", start: 282.4, end: 300.0 }
                 ]
             }
+        },
+        {
+            // ステージ5: 左右NEXTで別々の線を描画（押した拍のみ表示）
+            type: GIMMICK_TYPES.VERTICAL_LINES,
+            settings: {
+                x: 50,
+                y: 50,
+                size: 300,
+                beats: [
+                    { beat: 1,
+                      leftLines: [ { x1: 20, y1: 20, x2: 80, y2: 20, width: 6 }, { x1: 30, y1: 30, x2: 80, y2: 20, width: 6 } ],
+                      rightLines: [ { x1: 20, y1: 20, x2: 80, y2: 80, width: 6 } ]
+                    },
+                    { beat: 2,
+                      leftLines: [ { x1: 50, y1: 30, x2: 50, y2: 70, width: 6 } ],
+                      rightLines: [ { x1: 30, y1: 50, x2: 70, y2: 50, width: 6 } ]
+                    },
+                    { beat: 3,
+                      leftLines: [ { x1: 20, y1: 80, x2: 80, y2: 80, width: 6 } ],
+                      rightLines: [ { x1: 20, y1: 80, x2: 80, y2: 20, width: 6 } ]
+                    },
+                    { beat: 4,
+                      leftLines: [ { x1: 25, y1: 25, x2: 25, y2: 75, width: 6 } ],
+                      rightLines: [ { x1: 75, y1: 25, x2: 75, y2: 75, width: 6 } ]
+                    }
+                ]
+            }
         }
     ]
 };
@@ -878,7 +905,7 @@ const stageSettings = {
     2: { dots: 8, useLeftNext: false },
     3: { dots: 4 },
     4: { dots: 8 },
-    5: { dots: 8 },
+    5: { dots: 4 },
     6: { dots: 8 },
     7: { dots: 4 },
     8: { dots: 8 },
@@ -1625,12 +1652,36 @@ class GimmickManager {
 
             const beats = (config.settings && config.settings.beats) || [];
             beats.forEach(beatCfg => {
+                // legacy lines (visible by general selection or stage rule)
                 (beatCfg.lines || []).forEach((_, lineIdx) => {
                     const line = document.createElement('div');
                     line.className = 'dakuten-line';
                     line.style.position = 'absolute';
                     line.dataset.beat = String(beatCfg.beat);
                     line.dataset.which = String(lineIdx);
+                    line.dataset.side = 'legacy';
+                    container.appendChild(line);
+                });
+
+                // left-only lines (triggered by LEFT NEXT)
+                (beatCfg.leftLines || []).forEach((_, lineIdx) => {
+                    const line = document.createElement('div');
+                    line.className = 'dakuten-line';
+                    line.style.position = 'absolute';
+                    line.dataset.beat = String(beatCfg.beat);
+                    line.dataset.which = String(lineIdx);
+                    line.dataset.side = 'left';
+                    container.appendChild(line);
+                });
+
+                // right-only lines (triggered by RIGHT NEXT)
+                (beatCfg.rightLines || []).forEach((_, lineIdx) => {
+                    const line = document.createElement('div');
+                    line.className = 'dakuten-line';
+                    line.style.position = 'absolute';
+                    line.dataset.beat = String(beatCfg.beat);
+                    line.dataset.which = String(lineIdx);
+                    line.dataset.side = 'right';
                     container.appendChild(line);
                 });
             });
@@ -2019,7 +2070,7 @@ _updateNumberTextGimmick(element, config, containerSize) {
         const visibleSet = useRightOnly ? selectedBeatsRight : selectedBeats;
         beats.forEach(beatCfg => {
             (beatCfg.lines || []).forEach((lineCfg, lineIdx) => {
-                const sel = `.dakuten-line[data-beat='${beatCfg.beat}'][data-which='${lineIdx}']`;
+                const sel = `.dakuten-line[data-beat='${beatCfg.beat}'][data-side='legacy'][data-which='${lineIdx}']`;
                 const lineEl = element.querySelector(sel);
                 if (!lineEl) return;
 
@@ -2035,10 +2086,117 @@ _updateNumberTextGimmick(element, config, containerSize) {
                 lineEl.style.opacity = visibleSet.has(beatCfg.beat) ? '1' : '0';
                 lineEl.style.transition = 'opacity 0.1s ease, transform 0.1s ease';
 
+                // Generalized line support: if endpoints (x1,y1)-(x2,y2) are provided,
+                // override size/position/rotation to draw arbitrary-oriented lines.
+                if (lineCfg.x1 != null && lineCfg.y1 != null && lineCfg.x2 != null && lineCfg.y2 != null) {
+                    const widthPx = (lineCfg.width || 6) * scaleFactor;
+                    const elementSizePx = (config?.settings?.size || 400) * scaleFactor;
+                    const x1 = (lineCfg.x1 / 100) * elementSizePx;
+                    const y1 = (lineCfg.y1 / 100) * elementSizePx;
+                    const x2 = (lineCfg.x2 / 100) * elementSizePx;
+                    const y2 = (lineCfg.y2 / 100) * elementSizePx;
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+                    const lengthPx = Math.max(1, Math.hypot(dx, dy));
+                    const angleDeg = (Math.atan2(dy, dx) * 180 / Math.PI) + 90; // base is vertical
+                    const cx = (lineCfg.x1 + lineCfg.x2) / 2;
+                    const cy = (lineCfg.y1 + lineCfg.y2) / 2;
+
+                    lineEl.style.width = `${widthPx}px`;
+                    lineEl.style.height = `${lengthPx}px`;
+                    lineEl.style.left = `${cx}%`;
+                    lineEl.style.top = `${cy}%`;
+                    lineEl.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg)`;
+                }
+
                 // 現在拍のときに少し強調したい場合は以下のコメントアウトを有効化
                 // if (beatCfg.beat === currentBeat) {
                 //     lineEl.style.transform = 'translate(-50%, -50%) scale(1.05)';
                 // }
+            });
+        });
+
+        // Left-only lines (triggered by LEFT NEXT)
+        beats.forEach(beatCfg => {
+            (beatCfg.leftLines || []).forEach((lineCfg, lineIdx) => {
+                const sel = `.dakuten-line[data-beat='${beatCfg.beat}'][data-side='left'][data-which='${lineIdx}']`;
+                const lineEl = element.querySelector(sel);
+                if (!lineEl) return;
+
+                const widthPx = (lineCfg.width || 6) * scaleFactor;
+                lineEl.style.backgroundColor = '#111';
+                lineEl.style.borderRadius = `${Math.max(1, widthPx/2)}px`;
+                lineEl.style.transition = 'opacity 0.1s ease, transform 0.1s ease';
+
+                const elementSizePx = (config?.settings?.size || 400) * scaleFactor;
+                if (lineCfg.x1 != null && lineCfg.y1 != null && lineCfg.x2 != null && lineCfg.y2 != null) {
+                    const x1 = (lineCfg.x1 / 100) * elementSizePx;
+                    const y1 = (lineCfg.y1 / 100) * elementSizePx;
+                    const x2 = (lineCfg.x2 / 100) * elementSizePx;
+                    const y2 = (lineCfg.y2 / 100) * elementSizePx;
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+                    const lengthPx = Math.max(1, Math.hypot(dx, dy));
+                    const angleDeg = (Math.atan2(dy, dx) * 180 / Math.PI) + 90;
+                    const cx = (lineCfg.x1 + lineCfg.x2) / 2;
+                    const cy = (lineCfg.y1 + lineCfg.y2) / 2;
+                    lineEl.style.width = `${widthPx}px`;
+                    lineEl.style.height = `${lengthPx}px`;
+                    lineEl.style.left = `${cx}%`;
+                    lineEl.style.top = `${cy}%`;
+                    lineEl.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg)`;
+                } else {
+                    const height = (lineCfg.length || 24) * scaleFactor;
+                    lineEl.style.width = `${widthPx}px`;
+                    lineEl.style.height = `${height}px`;
+                    lineEl.style.left = `${lineCfg.x}%`;
+                    lineEl.style.top = `${lineCfg.y}%`;
+                    lineEl.style.transform = 'translate(-50%, -50%)';
+                }
+
+                lineEl.style.opacity = selectedBeatsLeft.has(beatCfg.beat) ? '1' : '0';
+            });
+        });
+
+        // Right-only lines (triggered by RIGHT NEXT)
+        beats.forEach(beatCfg => {
+            (beatCfg.rightLines || []).forEach((lineCfg, lineIdx) => {
+                const sel = `.dakuten-line[data-beat='${beatCfg.beat}'][data-side='right'][data-which='${lineIdx}']`;
+                const lineEl = element.querySelector(sel);
+                if (!lineEl) return;
+
+                const widthPx = (lineCfg.width || 6) * scaleFactor;
+                lineEl.style.backgroundColor = '#111';
+                lineEl.style.borderRadius = `${Math.max(1, widthPx/2)}px`;
+                lineEl.style.transition = 'opacity 0.1s ease, transform 0.1s ease';
+
+                const elementSizePx = (config?.settings?.size || 400) * scaleFactor;
+                if (lineCfg.x1 != null && lineCfg.y1 != null && lineCfg.x2 != null && lineCfg.y2 != null) {
+                    const x1 = (lineCfg.x1 / 100) * elementSizePx;
+                    const y1 = (lineCfg.y1 / 100) * elementSizePx;
+                    const x2 = (lineCfg.x2 / 100) * elementSizePx;
+                    const y2 = (lineCfg.y2 / 100) * elementSizePx;
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+                    const lengthPx = Math.max(1, Math.hypot(dx, dy));
+                    const angleDeg = (Math.atan2(dy, dx) * 180 / Math.PI) + 90;
+                    const cx = (lineCfg.x1 + lineCfg.x2) / 2;
+                    const cy = (lineCfg.y1 + lineCfg.y2) / 2;
+                    lineEl.style.width = `${widthPx}px`;
+                    lineEl.style.height = `${lengthPx}px`;
+                    lineEl.style.left = `${cx}%`;
+                    lineEl.style.top = `${cy}%`;
+                    lineEl.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg)`;
+                } else {
+                    const height = (lineCfg.length || 24) * scaleFactor;
+                    lineEl.style.width = `${widthPx}px`;
+                    lineEl.style.height = `${height}px`;
+                    lineEl.style.left = `${lineCfg.x}%`;
+                    lineEl.style.top = `${lineCfg.y}%`;
+                    lineEl.style.transform = 'translate(-50%, -50%)';
+                }
+
+                lineEl.style.opacity = selectedBeatsRight.has(beatCfg.beat) ? '1' : '0';
             });
         });
     }
@@ -2070,6 +2228,28 @@ _updateNumberTextGimmick(element, config, containerSize) {
                 lineEl.style.borderRadius = `${Math.max(1, width/2)}px`;
                 lineEl.style.opacity = visibleSet.has(beatCfg.beat) ? '1' : '0';
                 lineEl.style.transition = 'opacity 0.1s ease, transform 0.1s ease';
+
+                // Generalized line support for LINES_ARCS too
+                if (lineCfg.x1 != null && lineCfg.y1 != null && lineCfg.x2 != null && lineCfg.y2 != null) {
+                    const widthPx = (lineCfg.width || 6) * scaleFactor;
+                    const elementSizePx = (config?.settings?.size || 400) * scaleFactor;
+                    const x1 = (lineCfg.x1 / 100) * elementSizePx;
+                    const y1 = (lineCfg.y1 / 100) * elementSizePx;
+                    const x2 = (lineCfg.x2 / 100) * elementSizePx;
+                    const y2 = (lineCfg.y2 / 100) * elementSizePx;
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+                    const lengthPx = Math.max(1, Math.hypot(dx, dy));
+                    const angleDeg = (Math.atan2(dy, dx) * 180 / Math.PI) + 90;
+                    const cx = (lineCfg.x1 + lineCfg.x2) / 2;
+                    const cy = (lineCfg.y1 + lineCfg.y2) / 2;
+
+                    lineEl.style.width = `${widthPx}px`;
+                    lineEl.style.height = `${lengthPx}px`;
+                    lineEl.style.left = `${cx}%`;
+                    lineEl.style.top = `${cy}%`;
+                    lineEl.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg)`;
+                }
             });
         });
 
