@@ -468,7 +468,7 @@ const STAGE_CONFIGS = {
                     // optional: custom positions inside element (percent). If omitted, arranged in one row.
                     positions: [ { x: 15, y: 50 }, { x: 40, y: 50 }, { x: 65, y: 50 }, { x: 90, y: 50 } ],
                     tileScale: 0.25,
-                    gapRatio: 0.06
+                    gapRatio: 0.0
                 }
             }
         ]
