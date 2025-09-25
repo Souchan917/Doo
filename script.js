@@ -9,9 +9,13 @@ const problemArea = document.getElementById('problemArea');
 const titleArea = document.querySelector('.title-area h2');
 
 // Hooks for independent effects per NEXT button
-// Customize these later for Effect A/B
-function onNext1Effect() {}
-function onNext2Effect() {}
+// Stage-specific effects are wired here
+function onNext1Effect() {
+    if (currentStage === 9) stage9HandleInput('left');
+}
+function onNext2Effect() {
+    if (currentStage === 9) stage9HandleInput('right');
+}
 
 //====================================================
 // NEXT色設定（デフォルト + ステージ別オーバーライド）
@@ -141,6 +145,8 @@ const GIMMICK_TYPES = {
 };
 // extend types without touching original block
 GIMMICK_TYPES.LINES_ARCS = 'lines_arcs';
+// Stage 9: 4 tiles that rotate per beat
+GIMMICK_TYPES.ROTATE_TILES = 'rotate_tiles';
 // クリック回数を追跡する変数を追加
 const clickCounts = {
     play: 0,
@@ -445,7 +451,26 @@ const STAGE_CONFIGS = {
     },
     9: {
         gimmicks: [
-
+            {
+                type: GIMMICK_TYPES.ROTATE_TILES,
+                settings: {
+                    x: 47.7,
+                    y: 48,
+                    size: 360,
+                    images: [
+                        'assets/images/puzzles/stage9/MAZE0.png',
+                        'assets/images/puzzles/stage9/MAZE1.png',
+                        'assets/images/puzzles/stage9/MAZE2.png',
+                        'assets/images/puzzles/stage9/MAZE3.png'
+                    ],
+                    // set default rotations; can be single number or array of four numbers
+                    defaultRotation: [90, -90, 90, 0],
+                    // optional: custom positions inside element (percent). If omitted, arranged in one row.
+                    positions: [ { x: 15, y: 50 }, { x: 40, y: 50 }, { x: 65, y: 50 }, { x: 90, y: 50 } ],
+                    tileScale: 0.25,
+                    gapRatio: 0.06
+                }
+            }
         ]
     },
     10: {
@@ -971,7 +996,7 @@ const stageSettings = {
     6: { dots: 8 },
     7: { dots: 4 },
     8: { dots: 8 },
-    9: { dots: 16 },
+    9: { dots: 4 },
     10: { dots: 8 },
     11: { dots: 16 },
     12: { dots: 16 },
@@ -1860,6 +1885,46 @@ class GimmickManager {
             element.appendChild(img);
         }
 
+        if (config.type === GIMMICK_TYPES.ROTATE_TILES) {
+            // Container keeps children absolutely positioned
+            element.style.position = 'absolute';
+            element.style.overflow = 'hidden';
+            // Build tile wrappers + images
+            const images = (config.settings && config.settings.images) || [];
+            const tiles = [];
+            const imgs = [];
+            // Resolve default rotations: number or array
+            const defRot = config.settings && config.settings.defaultRotation;
+            const defArray = Array.isArray(defRot) ? defRot : [defRot, defRot, defRot, defRot];
+            for (let i = 0; i < images.length; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'rotate-tile';
+                tile.style.position = 'absolute';
+                tile.style.transform = 'translate(-50%, -50%)';
+                const img = document.createElement('img');
+                img.src = images[i];
+                img.alt = `tile-${i}`;
+                img.draggable = false;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'contain';
+                img.style.transition = 'transform 0.25s ease-in-out';
+                tile.appendChild(img);
+                element.appendChild(tile);
+                tiles.push(tile);
+                imgs.push(img);
+            }
+            // Internal state stored on element
+            const defaultAngles = imgs.map((_, idx) => {
+                const v = defArray[idx];
+                return Number.isFinite(v) ? Number(v) : 0;
+            });
+            const angles = defaultAngles.slice();
+            const hidden = imgs.map(() => false);
+            const processedBeats = new Set(); // beats processed in this loop (prevent multiple rotations per beat)
+            element._rotateTiles = { tiles, imgs, angles, hidden, defaultAngles, processedBeats };
+        }
+
         if (config.type === GIMMICK_TYPES.RHYTHM_DOTS) {
             const container = document.createElement('div');
             container.style.position = 'absolute';
@@ -2187,6 +2252,82 @@ class GimmickManager {
             }
             img.style.opacity = '0';
             img.dataset.currentSrc = '';
+        }
+    }
+
+    _updateRotateTilesGimmick(element, config, containerSize) {
+        if (!element || !config) return;
+        const state = element._rotateTiles;
+        if (!state) return;
+        const tiles = state.tiles;
+        const imgs = state.imgs;
+        const settings = config.settings || {};
+        const count = Math.min(tiles.length, imgs.length);
+
+        // Handle loop reset: unhide tiles and restore default rotations; clear processed beats
+        if (isLoopComplete && state.hidden) {
+            for (let i = 0; i < state.hidden.length; i++) state.hidden[i] = false;
+            if (state.processedBeats && typeof state.processedBeats.clear === 'function') {
+                state.processedBeats.clear();
+            }
+            if (Array.isArray(state.defaultAngles)) {
+                // Snap reset (no animation) to default angles at loop boundary
+                for (let i = 0; i < imgs.length; i++) {
+                    // temporarily disable transition
+                    const img = imgs[i];
+                    const prevTrans = img.style.transition;
+                    img.style.transition = 'none';
+                    state.angles[i] = state.defaultAngles[i] || 0;
+                    img.style.transform = `rotate(${state.angles[i]}deg)`;
+                    // force reflow so transition-less apply takes effect
+                    void img.offsetWidth;
+                    // restore transition for subsequent interactions
+                    img.style.transition = prevTrans || 'transform 0.25s ease-in-out';
+                }
+            }
+        }
+
+        // Compute sizes and layout
+        const size = settings.size * (containerSize / 400);
+        const gapRatio = (typeof settings.gapRatio === 'number') ? Math.max(0, settings.gapRatio) : 0.06;
+        const gap = Math.round(size * gapRatio);
+        const positions = Array.isArray(settings.positions) ? settings.positions : null;
+        const tileScale = (typeof settings.tileScale === 'number' && settings.tileScale > 0) ? settings.tileScale : 0.22;
+
+        if (positions && positions.length >= count) {
+            // Absolute positions (percent) inside the container element
+            const tileSize = Math.max(8, Math.round(size * tileScale));
+            for (let i = 0; i < count; i++) {
+                const p = positions[i];
+                const tile = tiles[i];
+                tile.style.width = `${tileSize}px`;
+                tile.style.height = `${tileSize}px`;
+                tile.style.left = `${p.x}%`;
+                tile.style.top = `${p.y}%`;
+            }
+        } else {
+            // Default horizontal row layout (centered)
+            const padding = Math.round(size * 0.06);
+            const available = size - padding * 2;
+            const tileWidth = Math.floor((available - gap * (count - 1)) / count);
+            const top = Math.round((size - tileWidth) / 2);
+            let x = padding;
+            for (let i = 0; i < count; i++) {
+                const tile = tiles[i];
+                tile.style.width = `${tileWidth}px`;
+                tile.style.height = `${tileWidth}px`;
+                tile.style.left = `${x}px`;
+                tile.style.top = `${top}px`;
+                x += tileWidth + gap;
+            }
+        }
+
+        // Apply rotation and visibility
+        for (let i = 0; i < count; i++) {
+            const img = imgs[i];
+            const a = (state.angles && Number.isFinite(state.angles[i])) ? state.angles[i] : 0;
+            img.style.transform = `rotate(${a}deg)`;
+            tiles[i].style.visibility = state.hidden && state.hidden[i] ? 'hidden' : 'visible';
         }
     }
 
@@ -2641,6 +2782,10 @@ _updateNumberTextGimmick(element, config, containerSize) {
                 case GIMMICK_TYPES.LYRICS:
                     this._updateLyricsGimmick(element, gimmickConfig, size, scaleFactor);
                     break;
+
+                case GIMMICK_TYPES.ROTATE_TILES:
+                    this._updateRotateTilesGimmick(element, gimmickConfig, containerSize);
+                    break;
             }
         });
     }
@@ -2805,6 +2950,33 @@ function updateRhythmDots() {
             dot.style.backgroundColor = color;
         }
     });
+}
+
+// Stage 9: rotating tiles per beat
+function stage9HandleInput(side) {
+    try {
+        if (currentStage !== 9) return;
+        const el = document.getElementById('gimmick-9-0');
+        if (!el || !el._rotateTiles) return;
+        const state = el._rotateTiles;
+        const beat = getWrapSafeBeatNumber();
+        const idx = (beat - 1) % 4; // 1..16 -> 0..3
+        const l = selectedBeatsLeft.has(beat);
+        const r = selectedBeatsRight.has(beat);
+        if (l && r) {
+            state.hidden[idx] = true; // simultaneous -> hide
+            // mark processed so repeated presses in same beat do nothing
+            if (state.processedBeats) state.processedBeats.add(beat);
+        } else {
+            // Prevent multiple rotations within the same beat
+            if (state.processedBeats && state.processedBeats.has(beat)) return;
+            const delta = (side === 'right') ? 90 : -90;
+            const prev = Number.isFinite(state.angles[idx]) ? state.angles[idx] : 0;
+            const next = prev + delta; // keep signed to animate shortest path (e.g., -90deg)
+            state.angles[idx] = next;
+            if (state.processedBeats) state.processedBeats.add(beat);
+        }
+    } catch (_) { /* no-op */ }
 }
 
 function checkRhythmPattern() {
@@ -3578,6 +3750,7 @@ class AssetLoader {
                 'assets/images/controls/next.png',
                 'assets/images/controls/hint.png',
                 ...Array.from({ length: 8 }, (_, i) => `assets/images/puzzles/stage8/moon${i}.png`),
+                ...Array.from({ length: 4 }, (_, i) => `assets/images/puzzles/stage9/MAZE${i}.png`),
                 ...Array.from({ length: 8 }, (_, i) => `assets/images/puzzles/stage10/black${i}.png`),
                 ...Array.from({ length: 16 }, (_, i) => `assets/images/puzzles/wall/wall${i}.png`)
             ];
