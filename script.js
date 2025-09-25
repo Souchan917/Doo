@@ -136,6 +136,7 @@ const GIMMICK_TYPES = {
     CLICK_COUNTER: 'click_counter',  // 新しく追加
     LYRICS: 'lyrics',
     MORSE_DISPLAY: 'morse_display',
+    INPUT_IMAGE: 'input_image',
     VERTICAL_LINES: 'vertical_lines' // 濁点っぽい縦線2本描画
 };
 // extend types without touching original block
@@ -323,6 +324,16 @@ const STAGE_CONFIGS = {
                             y: 95
                         },
                     ]
+                }
+            },
+            {
+                type: GIMMICK_TYPES.INPUT_IMAGE,
+                settings: {
+                    x: 50,
+                    y: 75,
+                    size: 150,
+                    leftImage: 'assets/images/puzzles/stage5/UP.png',
+                    rightImage: 'assets/images/puzzles/stage5/DOWN.png'
                 }
             }
         ]
@@ -696,32 +707,72 @@ STAGE_CONFIGS[5] = {
             }
         },
         {
-            // ステージ5: 左右NEXTで別々の線を描画（押した拍のみ表示）
+            // ステージ5: 4拍 × (右=上矢印 / 左=下矢印) = 合計8本
             type: GIMMICK_TYPES.VERTICAL_LINES,
             settings: {
-                x: 50,
-                y: 50,
-                size: 300,
-                beats: [
-                    { beat: 1,
-                      leftLines: [ { x1: 20, y1: 20, x2: 80, y2: 20, width: 6 }, { x1: 30, y1: 30, x2: 80, y2: 20, width: 6 } ],
-                      rightLines: [ { x1: 20, y1: 20, x2: 80, y2: 80, width: 6 } ]
-                    },
-                    { beat: 2,
-                      leftLines: [ { x1: 50, y1: 30, x2: 50, y2: 70, width: 6 } ],
-                      rightLines: [ { x1: 30, y1: 50, x2: 70, y2: 50, width: 6 } ]
-                    },
-                    { beat: 3,
-                      leftLines: [ { x1: 20, y1: 80, x2: 80, y2: 80, width: 6 } ],
-                      rightLines: [ { x1: 20, y1: 80, x2: 80, y2: 20, width: 6 } ]
-                    },
-                    { beat: 4,
-                      leftLines: [ { x1: 25, y1: 25, x2: 25, y2: 75, width: 6 } ],
-                      rightLines: [ { x1: 75, y1: 25, x2: 75, y2: 75, width: 6 } ]
-                    }
-                ]
+              x: 50,
+              y: 50,
+              size: 300,
+              cornerStyle: 'round',        // same as before
+              cornerRadius: 6,
+              beats: [
+                // 列xは 20 / 40 / 60 / 80 に統一（右は上向き、左は下向き）
+                {
+                  beat: 1,
+                  rightLines: [
+                    { x1: 20, y1: 30, x2: 20, y2: 46, width: 6 }, // ↑シャフト
+                    { x1: 20, y1: 30, x2: 14, y2: 36, width: 6 }, // ↑ヘッド左
+                    { x1: 20, y1: 30, x2: 26, y2: 36, width: 6 }  // ↑ヘッド右
+                  ],
+                  leftLines: [
+                    { x1: 20, y1: 64, x2: 20, y2: 80, width: 6 }, // ↓シャフト
+                    { x1: 20, y1: 80, x2: 14, y2: 74, width: 6 }, // ↓ヘッド左
+                    { x1: 20, y1: 80, x2: 26, y2: 74, width: 6 }  // ↓ヘッド右
+                  ]
+                },
+                {
+                  beat: 2,
+                  rightLines: [
+                    { x1: 40, y1: 30, x2: 40, y2: 46, width: 6 },
+                    { x1: 40, y1: 30, x2: 34, y2: 36, width: 6 },
+                    { x1: 40, y1: 30, x2: 46, y2: 36, width: 6 }
+                  ],
+                  leftLines: [
+                    { x1: 40, y1: 64, x2: 40, y2: 80, width: 6 },
+                    { x1: 40, y1: 80, x2: 34, y2: 74, width: 6 },
+                    { x1: 40, y1: 80, x2: 46, y2: 74, width: 6 }
+                  ]
+                },
+                {
+                  beat: 3,
+                  rightLines: [
+                    { x1: 60, y1: 30, x2: 60, y2: 46, width: 6 },
+                    { x1: 60, y1: 30, x2: 54, y2: 36, width: 6 },
+                    { x1: 60, y1: 30, x2: 66, y2: 36, width: 6 }
+                  ],
+                  leftLines: [
+                    { x1: 60, y1: 64, x2: 60, y2: 80, width: 6 },
+                    { x1: 60, y1: 80, x2: 54, y2: 74, width: 6 },
+                    { x1: 60, y1: 80, x2: 66, y2: 74, width: 6 }
+                  ]
+                },
+                {
+                  beat: 4,
+                  rightLines: [
+                    { x1: 80, y1: 30, x2: 80, y2: 46, width: 6 },
+                    { x1: 80, y1: 30, x2: 74, y2: 36, width: 6 },
+                    { x1: 80, y1: 30, x2: 86, y2: 36, width: 6 }
+                  ],
+                  leftLines: [
+                    { x1: 80, y1: 64, x2: 80, y2: 80, width: 6 },
+                    { x1: 80, y1: 80, x2: 74, y2: 74, width: 6 },
+                    { x1: 80, y1: 80, x2: 86, y2: 74, width: 6 }
+                  ]
+                }
+              ]
             }
-        }
+          }
+          
     ]
 };
 
@@ -1335,13 +1386,39 @@ const stage16MorseState = {
     displayText: ''
 };
 
+const stage5InputImageState = {
+    side: null
+};
+
+function stage16UpdateDisplayText() {
+    if (!stage16MorseState.isActive) {
+        stage16MorseState.displayText = '';
+        return;
+    }
+    let preview = '';
+    if (stage16MorseState.currentBeatSymbol === 'invalid') {
+        preview = '?';
+    } else {
+        let pattern = stage16MorseState.currentPattern || '';
+        if (stage16MorseState.currentBeatSymbol === 'dash') {
+            pattern += '-';
+        } else if (stage16MorseState.currentBeatSymbol === 'dot') {
+            pattern += '.';
+        }
+        if (pattern) {
+            preview = MORSE_CODE_MAP[pattern] || '?';
+        }
+    }
+    stage16MorseState.displayText = (stage16MorseState.decodedText || '') + (preview || '');
+}
+
 function stage16SetActive(active) {
     if (active) {
         stage16MorseState.isActive = true;
         stage16MorseState.currentBeatSymbol = null;
         stage16MorseState.currentPattern = '';
         stage16MorseState.decodedText = '';
-        stage16MorseState.displayText = '';
+        stage16UpdateDisplayText();
         return;
     }
 
@@ -1353,6 +1430,8 @@ function stage16SetActive(active) {
     stage16MorseState.isActive = false;
     stage16MorseState.currentBeatSymbol = null;
     stage16MorseState.currentPattern = '';
+    stage16MorseState.decodedText = '';
+    stage16UpdateDisplayText();
 }
 
 function stage16RegisterInput(symbol) {
@@ -1360,11 +1439,10 @@ function stage16RegisterInput(symbol) {
     const current = stage16MorseState.currentBeatSymbol;
     if (current === null) {
         stage16MorseState.currentBeatSymbol = symbol;
-        return;
-    }
-    if (current !== symbol) {
+    } else if (current !== symbol) {
         stage16MorseState.currentBeatSymbol = 'invalid';
     }
+    stage16UpdateDisplayText();
 }
 
 function stage16ProcessCurrentBeat() {
@@ -1380,14 +1458,15 @@ function stage16ProcessCurrentBeat() {
         stage16FinalizePattern(false);
     }
     stage16MorseState.currentBeatSymbol = null;
+    stage16UpdateDisplayText();
 }
 
 function stage16FinalizePattern(forceFinalize) {
     if (!stage16MorseState.currentPattern) return;
     const letter = MORSE_CODE_MAP[stage16MorseState.currentPattern] || '?';
     stage16MorseState.decodedText += letter;
-    stage16MorseState.displayText = stage16MorseState.decodedText;
     stage16MorseState.currentPattern = '';
+    stage16UpdateDisplayText();
 }
 
 function stage16HandleTiming(beatChanged, loopWrapped) {
@@ -1397,6 +1476,10 @@ function stage16HandleTiming(beatChanged, loopWrapped) {
     }
     if (loopWrapped) {
         stage16FinalizePattern(true);
+        stage16MorseState.currentPattern = '';
+        stage16MorseState.currentBeatSymbol = null;
+        stage16MorseState.decodedText = '';
+        stage16UpdateDisplayText();
     }
 }
 let isHolding = false;
@@ -1763,6 +1846,20 @@ class GimmickManager {
             element.appendChild(textEl);
         }
 
+        if (config.type === GIMMICK_TYPES.INPUT_IMAGE) {
+            element.style.pointerEvents = 'none';
+            const img = document.createElement('img');
+            img.className = 'input-image-display';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '100%';
+            img.style.objectFit = 'contain';
+            img.style.opacity = '0';
+            img.dataset.currentSrc = '';
+            element.appendChild(img);
+        }
+
         if (config.type === GIMMICK_TYPES.RHYTHM_DOTS) {
             const container = document.createElement('div');
             container.style.position = 'absolute';
@@ -2067,6 +2164,32 @@ class GimmickManager {
         textEl.textContent = text || '';
     }
 
+    _updateInputImageGimmick(element, config, size) {
+        const img = element.querySelector('.input-image-display');
+        if (!img) return;
+        const settings = config.settings || {};
+        const side = (currentStage === 5) ? stage5InputImageState.side : null;
+        let nextSrc = '';
+        if (side === 'left' && settings.leftImage) {
+            nextSrc = settings.leftImage;
+        } else if (side === 'right' && settings.rightImage) {
+            nextSrc = settings.rightImage;
+        }
+        if (nextSrc) {
+            if (img.dataset.currentSrc !== nextSrc) {
+                img.src = nextSrc;
+                img.dataset.currentSrc = nextSrc;
+            }
+            img.style.opacity = '1';
+        } else {
+            if (img.dataset.currentSrc) {
+                img.removeAttribute('src');
+            }
+            img.style.opacity = '0';
+            img.dataset.currentSrc = '';
+        }
+    }
+
     // _updateNumberTextGimmick関数を更新
 _updateNumberTextGimmick(element, config, containerSize) {
     const scaleFactor = containerSize / 400;
@@ -2202,6 +2325,8 @@ _updateNumberTextGimmick(element, config, containerSize) {
         });
     }
 
+
+
     _updateVerticalLinesGimmick(element, config, containerSize) {
         const scaleFactor = containerSize / 400;
         const currentBeat = Math.floor(currentBeatProgress) + 1;
@@ -2215,143 +2340,117 @@ _updateNumberTextGimmick(element, config, containerSize) {
         container.style.left = '0';
 
         const beats = (config.settings && config.settings.beats) || [];
-        // Stage-specific assignment: Stage 7 uses RIGHT(NEXT2) presses only
-        const stageIdForElement = (() => { try { return parseInt((element.id || '').split('-')[1] || '-1', 10); } catch(_) { return -1; } })();
+        const stageIdForElement = (() => {
+            try { return parseInt((element.id || '').split('-')[1] || '-1', 10); }
+            catch (_) { return -1; }
+        })();
         const useRightOnly = (stageIdForElement === 7);
         const visibleSet = useRightOnly ? selectedBeatsRight : selectedBeats;
+
+        const resolveLineColor = (lineCfg) => lineCfg.color || config?.settings?.color || '#111';
+
+        const evaluateCorner = (value, widthPx) => {
+            if (value == null) return null;
+            if (typeof value === 'number' && Number.isFinite(value)) {
+                return Math.max(0, value) * scaleFactor;
+            }
+            if (typeof value === 'string') {
+                const trimmed = value.trim().toLowerCase();
+                if (!trimmed) return null;
+                if (trimmed === 'round' || trimmed === 'circle' || trimmed === 'full') {
+                    return Math.max(0, widthPx / 2);
+                }
+                if (trimmed === 'square' || trimmed === 'sharp' || trimmed === 'none') {
+                    return 0;
+                }
+                if (trimmed.endsWith('%')) {
+                    const pct = parseFloat(trimmed);
+                    if (Number.isFinite(pct)) {
+                        return Math.max(0, widthPx * pct / 100);
+                    }
+                }
+                const numeric = parseFloat(trimmed);
+                if (Number.isFinite(numeric)) {
+                    return Math.max(0, numeric) * scaleFactor;
+                }
+            }
+            return null;
+        };
+
+        const resolveCornerRadiusPx = (lineCfg, widthPx) => {
+            const lineCorner = evaluateCorner(lineCfg.cornerRadius ?? lineCfg.cornerStyle, widthPx);
+            if (lineCorner !== null) return lineCorner;
+            const configCorner = evaluateCorner(config?.settings?.cornerRadius ?? config?.settings?.cornerStyle, widthPx);
+            if (configCorner !== null) return configCorner;
+            return Math.max(0, widthPx / 2);
+        };
+
+        const applyLineStyle = (lineEl, lineCfg, isVisible) => {
+            const baseWidth = (typeof lineCfg.width === 'number') ? lineCfg.width : 6;
+            const widthPx = baseWidth * scaleFactor;
+            const color = resolveLineColor(lineCfg);
+            lineEl.style.backgroundColor = color;
+            lineEl.style.transition = 'opacity 0.1s ease, transform 0.1s ease';
+
+            const elementSizePx = (config?.settings?.size || 400) * scaleFactor;
+            if (lineCfg.x1 != null && lineCfg.y1 != null && lineCfg.x2 != null && lineCfg.y2 != null) {
+                const x1 = (lineCfg.x1 / 100) * elementSizePx;
+                const y1 = (lineCfg.y1 / 100) * elementSizePx;
+                const x2 = (lineCfg.x2 / 100) * elementSizePx;
+                const y2 = (lineCfg.y2 / 100) * elementSizePx;
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const lengthPx = Math.max(1, Math.hypot(dx, dy));
+                const angleDeg = (Math.atan2(dy, dx) * 180 / Math.PI) + 90;
+                const cx = (lineCfg.x1 + lineCfg.x2) / 2;
+                const cy = (lineCfg.y1 + lineCfg.y2) / 2;
+
+                lineEl.style.width = `${widthPx}px`;
+                lineEl.style.height = `${lengthPx}px`;
+                lineEl.style.left = `${cx}%`;
+                lineEl.style.top = `${cy}%`;
+                lineEl.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg)`;
+            } else {
+                const heightPx = ((typeof lineCfg.length === 'number') ? lineCfg.length : 24) * scaleFactor;
+                lineEl.style.width = `${widthPx}px`;
+                lineEl.style.height = `${heightPx}px`;
+                lineEl.style.left = `${lineCfg.x}%`;
+                lineEl.style.top = `${lineCfg.y}%`;
+                lineEl.style.transform = 'translate(-50%, -50%)';
+            }
+
+            const radiusPx = resolveCornerRadiusPx(lineCfg, widthPx);
+            lineEl.style.borderRadius = `${radiusPx}px`;
+            lineEl.style.opacity = isVisible ? '1' : '0';
+        };
+
         beats.forEach(beatCfg => {
             (beatCfg.lines || []).forEach((lineCfg, lineIdx) => {
                 const sel = `.dakuten-line[data-beat='${beatCfg.beat}'][data-side='legacy'][data-which='${lineIdx}']`;
                 const lineEl = element.querySelector(sel);
                 if (!lineEl) return;
-
-                const height = (lineCfg.length || 24) * scaleFactor;
-                const width = (lineCfg.width || 6) * scaleFactor;
-                lineEl.style.width = `${width}px`;
-                lineEl.style.height = `${height}px`;
-                lineEl.style.left = `${lineCfg.x}%`;
-                lineEl.style.top = `${lineCfg.y}%`;
-                lineEl.style.transform = 'translate(-50%, -50%)';
-                lineEl.style.backgroundColor = '#111';
-                lineEl.style.borderRadius = `${Math.max(1, width/2)}px`;
-                lineEl.style.opacity = visibleSet.has(beatCfg.beat) ? '1' : '0';
-                lineEl.style.transition = 'opacity 0.1s ease, transform 0.1s ease';
-
-                // Generalized line support: if endpoints (x1,y1)-(x2,y2) are provided,
-                // override size/position/rotation to draw arbitrary-oriented lines.
-                if (lineCfg.x1 != null && lineCfg.y1 != null && lineCfg.x2 != null && lineCfg.y2 != null) {
-                    const widthPx = (lineCfg.width || 6) * scaleFactor;
-                    const elementSizePx = (config?.settings?.size || 400) * scaleFactor;
-                    const x1 = (lineCfg.x1 / 100) * elementSizePx;
-                    const y1 = (lineCfg.y1 / 100) * elementSizePx;
-                    const x2 = (lineCfg.x2 / 100) * elementSizePx;
-                    const y2 = (lineCfg.y2 / 100) * elementSizePx;
-                    const dx = x2 - x1;
-                    const dy = y2 - y1;
-                    const lengthPx = Math.max(1, Math.hypot(dx, dy));
-                    const angleDeg = (Math.atan2(dy, dx) * 180 / Math.PI) + 90; // base is vertical
-                    const cx = (lineCfg.x1 + lineCfg.x2) / 2;
-                    const cy = (lineCfg.y1 + lineCfg.y2) / 2;
-
-                    lineEl.style.width = `${widthPx}px`;
-                    lineEl.style.height = `${lengthPx}px`;
-                    lineEl.style.left = `${cx}%`;
-                    lineEl.style.top = `${cy}%`;
-                    lineEl.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg)`;
-                }
-
-                // 現在拍のときに少し強調したい場合は以下のコメントアウトを有効化
-                // if (beatCfg.beat === currentBeat) {
-                //     lineEl.style.transform = 'translate(-50%, -50%) scale(1.05)';
-                // }
+                applyLineStyle(lineEl, lineCfg, visibleSet.has(beatCfg.beat));
             });
         });
 
-        // Left-only lines (triggered by LEFT NEXT)
         beats.forEach(beatCfg => {
             (beatCfg.leftLines || []).forEach((lineCfg, lineIdx) => {
                 const sel = `.dakuten-line[data-beat='${beatCfg.beat}'][data-side='left'][data-which='${lineIdx}']`;
                 const lineEl = element.querySelector(sel);
                 if (!lineEl) return;
-
-                const widthPx = (lineCfg.width || 6) * scaleFactor;
-                lineEl.style.backgroundColor = '#111';
-                lineEl.style.borderRadius = `${Math.max(1, widthPx/2)}px`;
-                lineEl.style.transition = 'opacity 0.1s ease, transform 0.1s ease';
-
-                const elementSizePx = (config?.settings?.size || 400) * scaleFactor;
-                if (lineCfg.x1 != null && lineCfg.y1 != null && lineCfg.x2 != null && lineCfg.y2 != null) {
-                    const x1 = (lineCfg.x1 / 100) * elementSizePx;
-                    const y1 = (lineCfg.y1 / 100) * elementSizePx;
-                    const x2 = (lineCfg.x2 / 100) * elementSizePx;
-                    const y2 = (lineCfg.y2 / 100) * elementSizePx;
-                    const dx = x2 - x1;
-                    const dy = y2 - y1;
-                    const lengthPx = Math.max(1, Math.hypot(dx, dy));
-                    const angleDeg = (Math.atan2(dy, dx) * 180 / Math.PI) + 90;
-                    const cx = (lineCfg.x1 + lineCfg.x2) / 2;
-                    const cy = (lineCfg.y1 + lineCfg.y2) / 2;
-                    lineEl.style.width = `${widthPx}px`;
-                    lineEl.style.height = `${lengthPx}px`;
-                    lineEl.style.left = `${cx}%`;
-                    lineEl.style.top = `${cy}%`;
-                    lineEl.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg)`;
-                } else {
-                    const height = (lineCfg.length || 24) * scaleFactor;
-                    lineEl.style.width = `${widthPx}px`;
-                    lineEl.style.height = `${height}px`;
-                    lineEl.style.left = `${lineCfg.x}%`;
-                    lineEl.style.top = `${lineCfg.y}%`;
-                    lineEl.style.transform = 'translate(-50%, -50%)';
-                }
-
-                lineEl.style.opacity = selectedBeatsLeft.has(beatCfg.beat) ? '1' : '0';
+                applyLineStyle(lineEl, lineCfg, selectedBeatsLeft.has(beatCfg.beat));
             });
         });
 
-        // Right-only lines (triggered by RIGHT NEXT)
         beats.forEach(beatCfg => {
             (beatCfg.rightLines || []).forEach((lineCfg, lineIdx) => {
                 const sel = `.dakuten-line[data-beat='${beatCfg.beat}'][data-side='right'][data-which='${lineIdx}']`;
                 const lineEl = element.querySelector(sel);
                 if (!lineEl) return;
-
-                const widthPx = (lineCfg.width || 6) * scaleFactor;
-                lineEl.style.backgroundColor = '#111';
-                lineEl.style.borderRadius = `${Math.max(1, widthPx/2)}px`;
-                lineEl.style.transition = 'opacity 0.1s ease, transform 0.1s ease';
-
-                const elementSizePx = (config?.settings?.size || 400) * scaleFactor;
-                if (lineCfg.x1 != null && lineCfg.y1 != null && lineCfg.x2 != null && lineCfg.y2 != null) {
-                    const x1 = (lineCfg.x1 / 100) * elementSizePx;
-                    const y1 = (lineCfg.y1 / 100) * elementSizePx;
-                    const x2 = (lineCfg.x2 / 100) * elementSizePx;
-                    const y2 = (lineCfg.y2 / 100) * elementSizePx;
-                    const dx = x2 - x1;
-                    const dy = y2 - y1;
-                    const lengthPx = Math.max(1, Math.hypot(dx, dy));
-                    const angleDeg = (Math.atan2(dy, dx) * 180 / Math.PI) + 90;
-                    const cx = (lineCfg.x1 + lineCfg.x2) / 2;
-                    const cy = (lineCfg.y1 + lineCfg.y2) / 2;
-                    lineEl.style.width = `${widthPx}px`;
-                    lineEl.style.height = `${lengthPx}px`;
-                    lineEl.style.left = `${cx}%`;
-                    lineEl.style.top = `${cy}%`;
-                    lineEl.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg)`;
-                } else {
-                    const height = (lineCfg.length || 24) * scaleFactor;
-                    lineEl.style.width = `${widthPx}px`;
-                    lineEl.style.height = `${height}px`;
-                    lineEl.style.left = `${lineCfg.x}%`;
-                    lineEl.style.top = `${lineCfg.y}%`;
-                    lineEl.style.transform = 'translate(-50%, -50%)';
-                }
-
-                lineEl.style.opacity = selectedBeatsRight.has(beatCfg.beat) ? '1' : '0';
+                applyLineStyle(lineEl, lineCfg, selectedBeatsRight.has(beatCfg.beat));
             });
         });
     }
-
     _updateLinesArcsGimmick(element, config, containerSize) {
         const scaleFactor = containerSize / 400;
         const container = element.querySelector('div');
@@ -2529,6 +2628,10 @@ _updateNumberTextGimmick(element, config, containerSize) {
 
                 case GIMMICK_TYPES.CLICK_COUNTER:
                     this._updateClickCounterGimmick(element, gimmickConfig, size);
+                    break;
+
+                case GIMMICK_TYPES.INPUT_IMAGE:
+                    this._updateInputImageGimmick(element, gimmickConfig, size);
                     break;
 
                 case GIMMICK_TYPES.MORSE_DISPLAY:
@@ -2838,6 +2941,7 @@ function updateStageContent() {
     selectedBeatsLeft.clear();
     selectedBeatsRight.clear();
     isLoopComplete = false;
+    stage5InputImageState.side = null;
     stage16SetActive(currentStage === 16);
     updateProblemElements();
     updateNextButtonsVisibility();
@@ -3103,6 +3207,9 @@ function doNext1Action() {
         selectedBeats.add(currentBeat);
         selectedBeatsLeft.add(currentBeat);
     }
+    if (currentStage === 5) {
+        stage5InputImageState.side = 'left';
+    }
     if (currentStage === 16) {
         stage16RegisterInput('dash');
     }
@@ -3122,6 +3229,9 @@ function doNext2Action() {
     const currentBeat = getWrapSafeBeatNumber();
     selectedBeats.add(currentBeat);
     selectedBeatsRight.add(currentBeat);
+    if (currentStage === 5) {
+        stage5InputImageState.side = 'right';
+    }
     if (currentStage === 16) {
         stage16RegisterInput('dot');
     }
