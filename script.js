@@ -3238,33 +3238,38 @@ function updateProblemElements() {
                 readyBtn.addEventListener('touchstart', () => { try { readyBtn.style.transform = 'scale(0.98)'; } catch(_){} }, { passive: true });
                 readyBtn.addEventListener('touchend',   () => { try { readyBtn.style.transform = 'scale(1)'; } catch(_){} });
             }
-            bind('calibReady', () => {
+            bind('calibReady', async () => {
                 setReadyPressed();
-                const bufMap = window.__audioBuffers || {};
-                const nextBuf = bufMap[AUDIO_URLS.main];
-                if (isPlaying) {
-                    // schedule switch at next loop boundary and then move stage
-                    audio.scheduleSwitchAtLoopEnd(AUDIO_URLS.main, nextBuf, () => {
-                        // apply per-track volume after switch
-                        applyVolumeForCurrentTrack();
-                        currentStage = 0;
-                        updateStageContent();
-                    }).catch(() => {
-                        currentStage = 0;
-                        updateStageContent();
-                    });
-                } else {
-                    // do not start audio; just move stage and prepare buffer for when user presses play
-                    try {
-                        audio.url = AUDIO_URLS.main;
-                        if (nextBuf) audio._prefetchedArrayBuffer = nextBuf;
-                        audio._ready = null; // force reload on next play
-                        // apply volume for upcoming main track
-                        applyVolumeForCurrentTrack();
-                    } catch (_) {}
-                    currentStage = 0;
-                    updateStageContent();
-                }
+                // Stop any playing audio immediately
+                try { audio.pause(); } catch(_) {}
+                isPlaying = false;
+                try { if (playIcon) playIcon.src = 'assets/images/controls/play.png'; } catch(_) {}
+
+                // Prepare main track (MUSIC2000.mp3) to start from the beginning on next play
+                try {
+                    const bufMap = window.__audioBuffers || {};
+                    const nextBuf = bufMap[AUDIO_URLS.main];
+                    if (typeof audio._ensureContext === 'function') {
+                        await audio._ensureContext();
+                    }
+                    // Switch URL and pre-provide buffer, then decode to know loopStart
+                    audio.url = AUDIO_URLS.main;
+                    audio._ready = null; // force reload for new URL
+                    if (nextBuf) audio.provideArrayBuffer(nextBuf);
+                    if (typeof audio._load === 'function') {
+                        await audio._load();
+                    }
+                    // Ensure next playback starts from the very beginning of the main loop
+                    try { audio._offset = audio._loopStart || 0; } catch(_) {}
+                    applyVolumeForCurrentTrack();
+                } catch(_) {}
+
+                // Reset UI time/progress
+                try { currentTime = 0; updateProgress(); } catch(_) {}
+
+                // Immediately move to Stage 0
+                currentStage = 0;
+                updateStageContent();
             });
         } else {
             // 数値表示だけ更新（音楽再生中でも押下可）
